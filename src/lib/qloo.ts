@@ -4,6 +4,7 @@
  */
 import "server-only";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { parseHours } from "./hours";
 import { MOCK_BY_ID, MOCK_ENTITIES } from "./mock-data";
 import type { Entity, EntityType, InsightEntity, QlooCall } from "./types";
 
@@ -171,7 +172,19 @@ function toEntity(r: Raw): Entity {
     website: typeof props.website === "string" ? props.website : undefined,
     closed: props.is_closed === true ? true : undefined,
     primaryGenre: ((props.primary_genre as Raw | undefined)?.id as string) ?? undefined,
+    hours: parseHours(props.hours),
+    rating: num(props.business_rating) ? +num(props.business_rating)!.toFixed(1) : undefined,
+    runtime: num(props.duration) && num(props.duration)! > 0 ? Math.round(num(props.duration)!) : undefined,
+    content_rating: typeof props.content_rating === "string" && props.content_rating.length <= 12 ? props.content_rating : undefined,
+    imdb: num(firstExt(r, "imdb")?.user_rating),
+    netflix: typeof firstExt(r, "netflix")?.id === "string" && /^\d{4,12}$/.test(firstExt(r, "netflix")!.id as string) ? (firstExt(r, "netflix")!.id as string) : undefined,
+    phone: typeof props.phone === "string" && /^\+?[\d ()-]{6,20}$/.test(props.phone) ? props.phone : undefined,
   };
+}
+
+/** First record for an external source (Qloo: external.imdb = [{ id, user_rating }]). */
+function firstExt(r: Raw, source: string) {
+  return asArr((r.external as Raw | undefined)?.[source])[0];
 }
 
 /** Collect {entity_id → contribution} from wherever explainability puts it. */
@@ -239,6 +252,10 @@ export type InsightsQuery = {
   popularityMax?: number;
   /** movies / TV: only titles released from this year */
   yearMin?: number;
+  /** places: only venues Qloo lists as open on this day ("friday") */
+  openOn?: string;
+  /** only these age ratings ("G", "PG", ...) */
+  contentRatings?: string[];
   take?: number;
 };
 
@@ -257,6 +274,8 @@ export async function insights(q: InsightsQuery): Promise<InsightEntity[]> {
     "filter.price_level.max": isPlace ? q.priceMax : undefined,
     "filter.popularity.max": q.popularityMax,
     "filter.release_year.min": !isPlace ? q.yearMin : undefined,
+    "filter.hours": isPlace ? q.openOn : undefined,
+    "filter.content_rating": !isPlace && q.contentRatings?.length ? q.contentRatings.join(",") : undefined,
     "feature.explainability": true,
     take: Math.min(q.take ?? 20, 50),
   };
@@ -343,7 +362,8 @@ function mockInsights(q: InsightsQuery): InsightEntity[] {
       (!q.candidates || q.candidates.includes(e.entity_id)) &&
       (!q.tags?.length || q.tags.every((t) => e.tags!.some((et) => et.id === t))) &&
       (!q.avoidTags?.length || !q.avoidTags.some((t) => e.tags!.some((et) => et.id === t))) &&
-      (!q.priceMax || (e.meta?.match(/\$+/)?.[0].length ?? 1) <= q.priceMax),
+      (!q.priceMax || (e.meta?.match(/\$+/)?.[0].length ?? 1) <= q.priceMax) &&
+      (!q.contentRatings?.length || q.contentRatings.includes(e.content_rating ?? "")),
   );
   return pool
     .map((c) => {

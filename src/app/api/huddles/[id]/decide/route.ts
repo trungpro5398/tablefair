@@ -3,7 +3,7 @@ import { agentEnabled, decide } from "@/lib/agent";
 import { ConstraintError, type RefineContext, type Step } from "@/lib/decide";
 import { QlooError, withQlooLog } from "@/lib/qloo";
 import { carriedOver } from "@/lib/fairness";
-import { getHistory, getHuddle, getPrivateAvoids, isDeciding, saveDecision, setDeciding } from "@/lib/store";
+import { getHistory, getHuddle, getPrivate, isDeciding, saveDecision, setDeciding } from "@/lib/store";
 import type { Decision, Huddle } from "@/lib/types";
 import { ipHash, reserveAgentRun } from "@/lib/usage";
 
@@ -54,8 +54,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/huddles/[id
   if (huddle.members.length < 2)
     return Response.json({ error: "Need at least 2 people to make a group decision" }, { status: 400 });
   // private "not tonight" requests are attached server-side only; the result never says who asked
-  const avoids = await getPrivateAvoids(id);
-  huddle.members = huddle.members.map((m) => (avoids[m.id] ? { ...m, avoid: avoids[m.id] } : m));
+  const priv = await getPrivate(id);
+  huddle.members = huddle.members.map((m) => (priv[m.id] ? { ...m, ...priv[m.id] } : m));
   // fairness carries over: who gave way on this group's earlier outings
   if (huddle.parent_id) huddle.carried = carriedOver(await getHistory(huddle.parent_id));
 

@@ -2,6 +2,7 @@
  * Offline catalogue used when QLOO_API_KEY is not set (local dev, judges without quota).
  * Venue names are fictional. No data in this file comes from the Qloo API.
  */
+import { DAYS, type Hours } from "./hours";
 import type { Entity, EntityType } from "./types";
 
 type Row = [id: string, name: string, type: EntityType, tags: string[], meta?: string];
@@ -63,16 +64,16 @@ const rows: Row[] = [
   ["mock-pl-01", "Lantern & Lime", "urn:entity:place", T("vietnamese cheap-eats vegetarian-friendly cozy"), "Footscray · $"],
   ["mock-pl-02", "Osteria Nonna Rina", "urn:entity:place", T("italian cozy romance european family vegetarian-friendly"), "Carlton · $$"],
   ["mock-pl-03", "Neon Ramen Bar", "urn:entity:place", T("japanese late-night loud cheap-eats"), "CBD · $"],
-  ["mock-pl-04", "The Green Fig", "urn:entity:place", T("vegetarian-friendly vegan cozy quiet"), "Fitzroy · $$"],
+  ["mock-pl-04", "The Green Fig", "urn:entity:place", T("vegetarian-friendly vegan gluten-free cozy quiet"), "Fitzroy · $$"],
   ["mock-pl-05", "Smoke & Steel Grill", "urn:entity:place", T("bbq loud sports blockbuster"), "Richmond · $$"],
   ["mock-pl-06", "Seoul Garden Pocha", "urn:entity:place", T("korean late-night loud feel-good vegetarian-friendly"), "CBD · $$"],
   ["mock-pl-07", "Atelier Nineteen", "urn:entity:place", T("upscale foodie european quiet"), "Southbank · $$$$"],
   ["mock-pl-08", "Bluestone Jazz Kitchen", "urn:entity:place", T("jazz live-music cozy romance vegetarian-friendly"), "CBD · $$$"],
-  ["mock-pl-09", "Taco Vecino", "urn:entity:place", T("latin cheap-eats feel-good loud vegetarian-friendly"), "Brunswick · $"],
+  ["mock-pl-09", "Taco Vecino", "urn:entity:place", T("latin cheap-eats feel-good loud vegetarian-friendly gluten-free"), "Brunswick · $"],
   ["mock-pl-10", "Kintsugi Omakase", "urn:entity:place", T("japanese upscale quiet foodie"), "Collingwood · $$$$"],
   ["mock-pl-11", "Pixel Arcade Bar", "urn:entity:place", T("late-night nostalgic loud electronic"), "CBD · $$"],
-  ["mock-pl-12", "Spice Route Dosa", "urn:entity:place", T("indian vegetarian-friendly cheap-eats family"), "Dandenong · $"],
-  ["mock-pl-13", "Harbour Fish Co.", "urn:entity:place", T("seafood family feel-good"), "St Kilda · $$"],
+  ["mock-pl-12", "Spice Route Dosa", "urn:entity:place", T("indian vegetarian-friendly halal gluten-free cheap-eats family"), "Dandenong · $"],
+  ["mock-pl-13", "Harbour Fish Co.", "urn:entity:place", T("seafood family feel-good halal"), "St Kilda · $$"],
   ["mock-pl-14", "Cinema Dumpling House", "urn:entity:place", T("chinese cheap-eats family late-night"), "CBD · $"],
   ["mock-pl-15", "Rooftop Sixty", "urn:entity:place", T("cocktails upscale electronic late-night"), "CBD · $$$"],
   ["mock-pl-16", "Little Kyoto Café", "urn:entity:place", T("japanese cozy quiet vegetarian-friendly animation"), "Carlton · $$"],
@@ -94,6 +95,28 @@ const SUBURB: Record<string, [number, number]> = {
   "St Kilda": [-37.8676, 144.9809],
 };
 
+/** Fictional opening hours, so the offline catalogue exercises the "open when you're going" check. */
+const week = (slot: [string, string] | null, closedOn: number[] = []): Hours =>
+  Object.fromEntries(DAYS.map((d, i) => [d, slot && !closedOn.includes(i) ? [slot] : []]));
+const MOCK_HOURS: Record<string, Hours> = {
+  "mock-pl-07": week(["18:00", "23:00"], [1, 2]), // Atelier Nineteen: closed Monday and Tuesday
+  "mock-pl-16": week(["08:00", "16:00"]), // Little Kyoto Café: daytime only
+  "mock-pl-17": week(["11:00", "22:00"], [1]), // Board Game Pantry: closed Monday
+};
+const hoursFor = (id: string, tags: string[]) =>
+  MOCK_HOURS[id] ?? (tags.includes("late-night") ? week(["17:00", "02:00"]) : week(["12:00", "22:30"]));
+
+/** Fictional age ratings and running times for films and shows (kid-friendly and "how long have you got" filters). */
+function screenFacts(id: string, type: EntityType, tags: string[]) {
+  if (type !== "urn:entity:movie" && type !== "urn:entity:tv_show") return {};
+  const tv = type === "urn:entity:tv_show";
+  const kid = tags.some((t) => ["family", "animation"].includes(t));
+  const adult = tags.some((t) => ["dark", "thriller", "action", "loud"].includes(t));
+  const content_rating = tv ? (kid ? "TV-PG" : adult ? "TV-MA" : "TV-14") : kid ? "PG" : adult ? "R" : "PG-13";
+  const n = id.charCodeAt(id.length - 1) + id.charCodeAt(id.length - 2);
+  return { content_rating, runtime: tv ? 25 + (n % 4) * 10 : 88 + (n % 7) * 12 };
+}
+
 export const MOCK_ENTITIES: Entity[] = rows.map(([entity_id, name, type, tags, meta]) => {
   const at = type === "urn:entity:place" ? SUBURB[meta?.split(" · ")[0] ?? ""] : undefined;
   const jitter = (s: string) => ((s.charCodeAt(s.length - 1) % 7) - 3) * 0.0012;
@@ -103,7 +126,8 @@ export const MOCK_ENTITIES: Entity[] = rows.map(([entity_id, name, type, tags, m
     type,
     meta,
     tags: tags.map((t) => ({ id: `urn:tag:mock:${t}`, name: t })),
-    ...(at ? { lat: at[0] + jitter(entity_id), lon: at[1] - jitter(name) } : {}),
+    ...screenFacts(entity_id, type, tags),
+    ...(at ? { lat: at[0] + jitter(entity_id), lon: at[1] - jitter(name), hours: hoursFor(entity_id, tags) } : {}),
   };
 });
 

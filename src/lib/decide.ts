@@ -6,8 +6,11 @@
 import "server-only";
 import { groupCompatibility, rankFairly } from "./fairness";
 import { highlights } from "./highlights";
+import { MIN_STAY_MIN, clock, openAt, parseWhen, whenLabel } from "./hours";
 import { DINNER_EXCLUDE, DINNER_TAG, compareTastes, findTags, insights, isDiningVenue, qlooMode } from "./qloo";
 import {
+  DIETS,
+  KID_RATINGS,
   KIND_TO_TYPE,
   type Decision,
   type Huddle,
@@ -94,6 +97,10 @@ export class DecisionSession {
   privateExclusions: string[] = [];
   /** the words themselves, for checking tag names and venue names locally */
   privateTerms: string[] = [];
+  /** dietary needs applied tonight: from the must-haves and from members' private needs */
+  dietNeeds: string[] = [];
+  /** how many of those came only from members' private needs */
+  privateDiets = 0;
   creditChangedPick = false;
   location?: string;
   changeNote = "";
@@ -181,8 +188,12 @@ export class DecisionSession {
       // "Dinner spot" means restaurants, not bars or shops (live Qloo category tag).
       if (this.huddle.kind === "place" && DINNER_TAG) tags.push(DINNER_TAG);
       if (this.huddle.kind === "place") {
-        for (const diet of ["vegetarian", "vegan", "gluten-free"]) {
-          if (!this.huddle.notes?.toLowerCase().includes(diet)) continue;
+        // the group's must-haves, plus needs members added privately (never attributed)
+        const fromNotes = DIETS.filter((d) => this.huddle.notes?.toLowerCase().includes(d));
+        const fromMembers = DIETS.filter((d) => !fromNotes.includes(d) && this.huddle.members.some((m) => m.needs?.includes(d)));
+        this.dietNeeds = [...fromNotes, ...fromMembers];
+        this.privateDiets = fromMembers.length;
+        for (const diet of this.dietNeeds) {
           const matches = await this.findTags(diet);
           // "one vegetarian" means a place WITH vegetarian options, not a vegetarian-only restaurant
           const named = (t: { name: string }) => [diet, `${diet}-friendly`, `${diet} friendly`].includes(t.name.toLowerCase());
@@ -222,6 +233,14 @@ export class DecisionSession {
     const take = Math.min(Math.max(opts.take ?? 30, 6), 40);
     const location = isPlace && opts.area ? `${opts.area}, ${this.huddle.location ?? ""}`.replace(/, $/, "") : this.huddle.location;
     const maxKm = isPlace ? (opts.maxKm ?? DEFAULT_MAX_KM) : undefined;
+    // the group said when they're going: Qloo keeps venues open that day, we check the time locally
+    const when = isPlace && parseWhen(this.huddle.when) ? this.huddle.when : undefined;
+    const closedThen = (e: InsightEntity) => !!when && openAt(e.hours, when)?.open === false;
+    // movies / TV: children watching means kid-friendly age ratings only (unrated titles are left out)
+    const kids = !isPlace && !!this.huddle.kids;
+    const maxMinutes = this.huddle.kind === "movie" ? this.huddle.max_minutes : undefined;
+    const unsuitable = (e: InsightEntity) =>
+      (kids && !KID_RATINGS.includes(e.content_rating ?? "")) || (!!maxMinutes && !!e.runtime && e.runtime > maxMinutes);
 
     const query = (signal: string[], n: number) =>
       insights({
@@ -234,6 +253,8 @@ export class DecisionSession {
         priceMax,
         popularityMax: opts.popularityMax,
         yearMin: opts.yearMin,
+        openOn: when ? parseWhen(when)!.day : undefined,
+        contentRatings: kids ? KID_RATINGS : undefined,
         // ask for more so the venue-type and distance filters still leave a full shortlist
         take: isPlace ? Math.min(n + 20, 50) : n,
       });
@@ -246,6 +267,8 @@ export class DecisionSession {
     const usable = (list: InsightEntity[]) =>
       (isPlace ? list.filter(isDiningVenue) : list).filter(
         (e) =>
+          !closedThen(e) &&
+          !unsuitable(e) &&
           !e.tags?.some((t) => avoidSet.has(t.id) || (calm && /^(loud|noisy|bustling|lively)$/i.test(t.name))) &&
           !this.privateTerms.some((w) => {
             const byName = new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "")}s?\\b`, "i").test(e.name);
@@ -254,7 +277,9 @@ export class DecisionSession {
           }),
       );
     const dining = usable(raw);
-    const droppedNonDining = raw.length - dining.length;
+    const droppedClosed = (isPlace ? raw.filter(isDiningVenue) : raw).filter(closedThen).length;
+    const droppedLong = raw.filter((e) => !!maxMinutes && !!e.runtime && e.runtime > maxMinutes).length;
+    const droppedNonDining = isPlace ? raw.length - dining.length - droppedClosed : 0;
     // everyone's own top matches go on the table first, then the group's shared-taste options
     const championOf = new Map<string, string[]>();
     const tops: InsightEntity[] = [];
@@ -293,6 +318,9 @@ export class DecisionSession {
       ...(prefer.length ? { prefer_tags: prefer.join(",") } : {}),
       ...(priceMax ? { price_level_max: priceMax } : {}),
       ...(maxKm ? { max_km: maxKm } : {}),
+      ...(when ? { open_at: when } : {}),
+      ...(kids ? { content_rating: KID_RATINGS.join(",") } : {}),
+      ...(maxMinutes ? { max_minutes: maxMinutes } : {}),
       ...(opts.popularityMax ? { popularity_max: opts.popularityMax } : {}),
       ...(opts.yearMin ? { release_year_min: opts.yearMin } : {}),
     };
@@ -314,6 +342,15 @@ export class DecisionSession {
       musts.length ? `Must be ${label(musts)}.` : "",
       priceMax ? `Up to ${"$".repeat(priceMax)}.` : "",
       calm ? "Loud, bustling and lively places ruled out." : "",
+      when
+        ? `Only places Qloo lists as open ${whenLabel(when)} with at least ${MIN_STAY_MIN / 60} hour to spare` +
+          (droppedClosed ? `; ${droppedClosed} closed or closing too soon were skipped.` : ".")
+        : "",
+      this.privateDiets ? `${this.privateDiets === 1 ? "A dietary need" : `${this.privateDiets} dietary needs`} added privately ${this.privateDiets === 1 ? "is" : "are"} covered too.` : "",
+      kids ? "Children are watching, so only titles rated G or PG (or the TV equivalents)." : "",
+      maxMinutes
+        ? `Films up to ${Math.floor(maxMinutes / 60)} h${maxMinutes % 60 ? ` ${maxMinutes % 60} min` : ""}` + (droppedLong ? `; ${droppedLong} longer ones skipped.` : ".")
+        : "",
       this.privateExclusions.length ? `Private "not tonight" requests applied: no ${this.privateExclusions.join(", no ")}.` : "",
       opts.avoidTags?.length ? `Avoiding ${label(opts.avoidTags)}.` : "",
       leaning.length ? `Leaning towards ${label(leaning)}.` : "",
@@ -415,6 +452,9 @@ export class DecisionSession {
         entity_id: r.entity.entity_id,
         name: r.entity.name,
         meta: r.entity.meta,
+        ...(r.entity.runtime && !isPlaceType(r.entity.type) ? { runtime_minutes: r.entity.runtime } : {}),
+        ...(r.entity.content_rating ? { age_rating: r.entity.content_rating } : {}),
+        ...(this.filters.open_at && r.entity.hours ? { open_until: openUntil(r.entity, String(this.filters.open_at)) } : {}),
         known_for: highlights(r.entity, 5),
         ...(r.entity.champion_of ? { brought_by: r.entity.champion_of } : {}),
         ...(this.wantsCalm() ? { tags_that_fit_the_calm_request: calmTags(r.entity) } : {}),
@@ -516,6 +556,7 @@ export class DecisionSession {
       created_at: new Date().toISOString(),
       mode: { qloo: qlooMode, agent },
       filters: this.filters,
+      when: this.filters.open_at ? String(this.filters.open_at) : undefined,
       ranked: withPersonalTops(this.ranked, this.huddle.members.map((m) => m.id)),
       majority: this.majority,
       picks,
@@ -530,6 +571,8 @@ export class DecisionSession {
       shortlist_size: this.ranked.length,
       calm_alternative: this.calmAlternative(),
       private_exclusions: this.privateExclusions.length ? this.privateExclusions : undefined,
+      diet_needs: this.dietNeeds.length ? this.dietNeeds : undefined,
+      private_diets: this.privateDiets || undefined,
       carried_over: this.huddle.carried?.length ? this.huddle.carried : undefined,
       carried_changed_pick: this.huddle.carried?.length ? this.creditChangedPick : undefined,
       personal_top: Object.fromEntries(
@@ -544,6 +587,8 @@ export class DecisionSession {
     };
   }
 }
+
+const isPlaceType = (t: string) => t === "urn:entity:place";
 
 /** Top 10 plus each person's own #1, so every option the page names is on the page. */
 function withPersonalTops(ranked: RankedCandidate[], memberIds: string[]) {
@@ -625,7 +670,14 @@ export async function refinementsByRules(s: DecisionSession, refinements: string
 function ruleMessage(huddle: Huddle, top?: RankedCandidate) {
   if (!top) return "";
   const where = top.entity.meta ? ` (${top.entity.meta.split(" · ").join(", ")})` : "";
-  return `${huddle.title}: let's do ${top.entity.name}${where}. It's the fairest fit for all of us.`;
+  const at = huddle.kind === "place" && parseWhen(huddle.when) ? `, ${whenLabel(huddle.when)}` : "";
+  return `${huddle.title}: let's do ${top.entity.name}${where}${at}. It's the fairest fit for all of us.`;
+}
+
+/** "1 am" for a venue open at that time; undefined if Qloo has no hours for it. */
+export function openUntil(e: { hours?: InsightEntity["hours"] }, when: string) {
+  const o = openAt(e.hours, when);
+  return o?.open && o.until ? clock(o.until) : undefined;
 }
 
 function ruleChange(prev: { entity_id: string; name: string } | undefined, now?: RankedCandidate) {

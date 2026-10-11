@@ -16,6 +16,13 @@ export const KIND_TO_TYPE: Record<HuddleKind, EntityType> = {
   tv_show: "urn:entity:tv_show",
 };
 
+/** Dietary needs a person can add privately when joining (dinner huddles). */
+export const DIETS = ["vegetarian", "vegan", "gluten-free", "halal", "kosher"] as const;
+export type Diet = (typeof DIETS)[number];
+
+/** Age ratings that suit children (Qloo filter.content_rating). */
+export const KID_RATINGS = ["G", "PG", "TV-Y", "TV-Y7", "TV-G", "TV-PG"];
+
 export type Entity = {
   entity_id: string;
   name: string;
@@ -34,6 +41,19 @@ export type Entity = {
   closed?: boolean;
   /** Qloo's primary genre tag for places, e.g. urn:tag:genre:place:restaurant:italian */
   primaryGenre?: string;
+  /** opening hours from Qloo (places), compact: day → [["12:00", "01:00"]] */
+  hours?: import("./hours").Hours;
+  /** Qloo business rating (places), 0–5 */
+  rating?: number;
+  phone?: string;
+  /** movies: running time in minutes; TV: episode length */
+  runtime?: number;
+  /** age rating, e.g. "PG", "TV-MA" */
+  content_rating?: string;
+  /** IMDb user rating (via Qloo external ids) */
+  imdb?: number;
+  /** Netflix title id (via Qloo external ids); catalogues differ by region */
+  netflix?: string;
 };
 
 /** A candidate as returned by /v2/insights, plus explainability. */
@@ -53,6 +73,8 @@ export type Member = {
   joined_at: string;
   /** private "not tonight"; server-side only, never in public reads */
   avoid?: string;
+  /** private dietary needs; server-side only, never in public reads */
+  needs?: Diet[];
 };
 
 export type Huddle = {
@@ -61,6 +83,12 @@ export type Huddle = {
   kind: HuddleKind;
   location?: string;
   notes?: string;
+  /** when the group is going, in the venue's local time: "2026-10-16T19:00" (places) */
+  when?: string;
+  /** movies / TV: children are watching too (age-rated G/PG and TV equivalents only) */
+  kids?: boolean;
+  /** movies: the longest running time the group has time for, in minutes */
+  max_minutes?: number;
   created_at: string;
   members: Member[];
   result?: Decision | null;
@@ -129,6 +157,8 @@ export type Decision = {
   created_at: string;
   mode: { qloo: "live" | "mock"; agent: "claude" | "rules" };
   filters: Record<string, string | number>;
+  /** when the group is going (places): options were checked against Qloo opening hours for this time */
+  when?: string;
   ranked: RankedCandidate[];
   /** what plain majority/average voting would pick */
   majority: RankedCandidate | null;
@@ -154,6 +184,10 @@ export type Decision = {
   calm_alternative?: { name: string; tags: string[]; lowest_match: number };
   /** what the group's private "not tonight" requests excluded (never who asked) */
   private_exclusions?: string[];
+  /** dietary needs covered, including private ones (never who asked) */
+  diet_needs?: string[];
+  /** how many of those were added privately by members */
+  private_diets?: number;
   /** fairness carried over from the group's earlier outings */
   carried_over?: CarriedOver[];
   /** whether that credit changed tonight's pick */

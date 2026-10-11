@@ -6,6 +6,7 @@ import CompareBars from "@/components/CompareBars";
 import TasteMap from "@/components/TasteMap";
 import ShortlistMap from "@/components/ShortlistMap";
 import { highlights } from "@/lib/highlights";
+import { clock, minutesLabel, openAt, whenLabel } from "@/lib/hours";
 import { STEP_LABEL } from "@/lib/steps";
 import { useTimeZone, watchRegion } from "@/lib/locale";
 import type { Decision, MemberScore, RankedCandidate } from "@/lib/types";
@@ -21,6 +22,27 @@ function hookOf(headline: string, name: string) {
 }
 
 const metaText = (meta?: string) => meta?.split(" · ").join(", ");
+
+/** "Open until 1 am on Fri 16 Oct, 7 pm" from Qloo hours, only when the group said when they're going. */
+function openText(c: RankedCandidate, when?: string) {
+  const o = when ? openAt(c.entity.hours, when) : undefined;
+  return o?.open && o.until ? `Open until ${clock(o.until)}` : undefined;
+}
+
+/** Practical facts: opening time and rating for a venue; running time, age rating and IMDb for a screen. */
+function venueFacts(c: RankedCandidate, when?: string) {
+  const e = c.entity;
+  if (e.type === "urn:entity:place")
+    return [openText(c, when), e.rating ? `★ ${e.rating.toFixed(1)}` : undefined].filter(Boolean).join(" · ");
+  const tv = e.type === "urn:entity:tv_show";
+  return [
+    e.runtime ? (tv ? `${e.runtime} min episodes` : minutesLabel(e.runtime)) : undefined,
+    e.content_rating,
+    e.imdb ? `IMDb ${e.imdb.toFixed(1)}` : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 /** The person the fair pick protects: the lowest match among people who actually have a preference tonight. */
 function lowest(scores: MemberScore[]) {
@@ -94,6 +116,25 @@ function NextStep({ c }: { c: RankedCandidate }) {
       >
         {isPlace ? "Open in Maps" : "Find where to watch"}
       </a>
+      {c.entity.netflix && (
+        <a
+          href={`https://www.netflix.com/title/${c.entity.netflix}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Netflix catalogues differ by country"
+          className="inline-flex items-center rounded-xl border border-line px-4 py-2.5 text-sm font-medium hover:bg-soft"
+        >
+          Netflix page
+        </a>
+      )}
+      {c.entity.phone && (
+        <a
+          href={`tel:${c.entity.phone.replace(/[^\d+]/g, "")}`}
+          className="inline-flex items-center rounded-xl border border-line px-4 py-2.5 text-sm font-medium hover:bg-soft"
+        >
+          Call to book
+        </a>
+      )}
       {c.entity.website && (
         <a
           href={c.entity.website}
@@ -313,6 +354,14 @@ export default function Results({
             {(hook || top.r.entity.meta) && (
               <p className="mt-1 text-muted">{[hook, metaText(top.r.entity.meta)].filter(Boolean).join(". ")}</p>
             )}
+            {venueFacts(top.r, decision.when) && (
+              <p className="mt-1 text-sm font-medium">
+                {venueFacts(top.r, decision.when)}
+                {decision.when && openText(top.r, decision.when) && (
+                  <span className="font-normal text-muted"> (you&apos;re going {whenLabel(decision.when)})</span>
+                )}
+              </p>
+            )}
             {top.r.entity.champion_of && (
               <p className="mt-2 inline-block rounded-full bg-soft px-2.5 py-0.5 text-xs font-medium">
                 {broughtBy(top.r.entity.champion_of)}
@@ -330,6 +379,13 @@ export default function Results({
               {decision.carried_changed_pick
                 ? "That small credit tipped tonight's close call their way."
                 : "Tonight's pick was already the kindest option for everyone, so the credit didn't change it."}
+            </p>
+          )}
+          {decision.diet_needs && (
+            <p className="text-sm text-muted">
+              Every suggestion is listed by Qloo as catering for: {decision.diet_needs.join(", ")}. Worth confirming when
+              you book.
+              {decision.private_diets ? " Some of these were added privately; who needs what stays private." : ""}
             </p>
           )}
           {decision.private_exclusions && (
@@ -443,9 +499,9 @@ export default function Results({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{r.entity.name}</p>
-                      {(r.entity.meta || r.entity.champion_of) && (
+                      {(r.entity.meta || r.entity.champion_of || venueFacts(r, decision.when)) && (
                         <p className="text-sm text-muted">
-                          {[metaText(r.entity.meta), broughtBy(r.entity.champion_of)].filter(Boolean).join(". ")}
+                          {[metaText(r.entity.meta), venueFacts(r, decision.when), broughtBy(r.entity.champion_of)].filter(Boolean).join(". ")}
                         </p>
                       )}
                     </div>

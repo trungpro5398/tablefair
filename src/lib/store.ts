@@ -4,7 +4,7 @@
  */
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Decision, Entity, Huddle, HuddleKind, Member } from "./types";
+import type { Decision, Diet, Entity, Huddle, HuddleKind, Member } from "./types";
 
 const URL_ = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -25,18 +25,28 @@ export async function createHuddle(input: {
   kind: HuddleKind;
   location?: string;
   notes?: string;
+  when?: string;
+  kids?: boolean;
+  max_minutes?: number;
   /** demo/test huddles are kept out of the impact numbers */
   isDemo?: boolean;
   /** the group's previous outing */
   parentId?: string;
 }): Promise<Huddle> {
-  const { isDemo, parentId, ...fields } = input;
+  const { isDemo, parentId, when, kids, max_minutes, ...fields } = input;
+  // only what applies to this kind of huddle: a time for dinner, kids and running time for screens
+  const plan = {
+    ...(fields.kind === "place" && when ? { when } : {}),
+    ...(fields.kind !== "place" && kids ? { kids: true } : {}),
+    ...(fields.kind === "movie" && max_minutes ? { max_minutes } : {}),
+  };
   const h: Huddle = {
     id: newHuddleId(),
     created_at: new Date().toISOString(),
     members: [],
     result: null,
     ...fields,
+    ...plan,
     ...(parentId ? { parent_id: parentId } : {}),
   };
   if (!sb) {
@@ -49,6 +59,7 @@ export async function createHuddle(input: {
     kind: h.kind,
     location: h.location ?? null,
     notes: h.notes ?? null,
+    plan: Object.keys(plan).length ? plan : null,
     parent_id: parentId ?? null,
     // anything not created on the production deployment (local dev, smoke tests) counts as test data
     is_demo: !!isDemo || process.env.VERCEL_ENV !== "production",
@@ -62,14 +73,19 @@ export async function getHuddle(id: string): Promise<Huddle | null> {
   // never select members.edit_token: this object is returned to anyone with the link
   const { data, error } = await sb
     .from("huddles")
-    .select("id, title, kind, location, notes, result, created_at, parent_id, members(id, name, picks, joined_at)")
+    .select("id, title, kind, location, notes, plan, result, created_at, parent_id, members(id, name, picks, joined_at)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
   const members = ((data.members ?? []) as Member[]).sort((a, b) => a.joined_at.localeCompare(b.joined_at));
+  const { plan, ...rest } = data;
+  const p = (plan ?? {}) as { when?: string; kids?: boolean; max_minutes?: number };
   return {
-    ...data,
+    ...rest,
+    ...(p.when ? { when: p.when } : {}),
+    ...(p.kids ? { kids: true } : {}),
+    ...(p.max_minutes ? { max_minutes: p.max_minutes } : {}),
     location: data.location ?? undefined,
     notes: data.notes ?? undefined,
     parent_id: data.parent_id ?? undefined,
@@ -101,29 +117,46 @@ export async function getHistory(parentId?: string): Promise<{ id: string; resul
 export async function createNextHuddle(id: string): Promise<string | null> {
   const prev = await getHuddle(id);
   if (!prev) return null;
-  const avoids = await getPrivateAvoids(id);
+  const priv = await getPrivate(id);
   let isDemo = process.env.VERCEL_ENV !== "production";
   if (sb) {
     const { data } = await sb.from("huddles").select("is_demo").eq("id", id).maybeSingle();
     isDemo = isDemo || !!data?.is_demo;
   }
-  const next = await createHuddle({ title: prev.title, kind: prev.kind, location: prev.location, notes: prev.notes, isDemo, parentId: id });
-  for (const m of prev.members) await addMember(next.id, m.name, m.picks, avoids[m.id]);
+  // a new outing needs a new time, so `when` is not copied; kids and running time are
+  const next = await createHuddle({
+    title: prev.title, kind: prev.kind, location: prev.location, notes: prev.notes,
+    kids: prev.kids, max_minutes: prev.max_minutes, isDemo, parentId: id,
+  });
+  for (const m of prev.members) await addMember(next.id, m.name, m.picks, priv[m.id]?.avoid, priv[m.id]?.needs);
   return next.id;
 }
 
-const memAvoids = ((globalThis as unknown as { __avoids?: Map<string, string> }).__avoids ??= new Map());
+const memPrivate = ((globalThis as unknown as { __private?: Map<string, Private> }).__private ??= new Map());
 
-/** Private "not tonight" requests by member id. Server-only: used by the decision, never returned to clients. */
-export async function getPrivateAvoids(huddleId: string): Promise<Record<string, string>> {
+type Private = { avoid?: string; needs?: Diet[] };
+
+/**
+ * Private "not tonight" requests and dietary needs by member id. Server-only: used by the decision,
+ * never returned to clients.
+ */
+export async function getPrivate(huddleId: string): Promise<Record<string, Private>> {
   if (!sb) {
-    const h = mem.get(huddleId);
-    const members: Member[] = h?.members ?? [];
-    return Object.fromEntries(members.flatMap((m) => (memAvoids.get(m.id) ? [[m.id, memAvoids.get(m.id)!]] : [])));
+    const members: Member[] = mem.get(huddleId)?.members ?? [];
+    return Object.fromEntries(members.flatMap((m) => (memPrivate.get(m.id) ? [[m.id, memPrivate.get(m.id)!]] : [])));
   }
-  const { data, error } = await sb.from("members").select("id, avoid").eq("huddle_id", huddleId).not("avoid", "is", null);
+  const { data, error } = await sb
+    .from("members")
+    .select("id, avoid, needs")
+    .eq("huddle_id", huddleId)
+    .or("avoid.not.is.null,needs.not.is.null");
   if (error) throw new Error(error.message);
-  return Object.fromEntries((data ?? []).map((r) => [r.id as string, r.avoid as string]));
+  return Object.fromEntries(
+    (data ?? []).map((r) => [
+      r.id as string,
+      { ...(r.avoid ? { avoid: r.avoid as string } : {}), ...((r.needs as Diet[] | null)?.length ? { needs: r.needs as Diet[] } : {}) },
+    ]),
+  );
 }
 
 const memTokens = ((globalThis as unknown as { __tokens?: Map<string, string> }).__tokens ??= new Map());
@@ -134,6 +167,7 @@ export async function addMember(
   name: string,
   picks: Entity[],
   avoid?: string,
+  needs?: Diet[],
 ): Promise<Member & { editToken: string }> {
   const m: Member = { id: crypto.randomUUID(), name, picks, joined_at: new Date().toISOString() };
   const editToken = crypto.randomUUID();
@@ -143,10 +177,10 @@ export async function addMember(
     h.members.push(m);
     h.result = null;
     memTokens.set(m.id, editToken);
-    if (avoid) memAvoids.set(m.id, avoid);
+    if (avoid || needs?.length) memPrivate.set(m.id, { avoid, needs });
     return { ...m, editToken };
   }
-  const { error } = await sb.from("members").insert({ ...m, huddle_id: huddleId, edit_token: editToken, avoid: avoid || null });
+  const { error } = await sb.from("members").insert({ ...m, huddle_id: huddleId, edit_token: editToken, avoid: avoid || null, needs: needs?.length ? needs : null });
   if (error) throw new Error(error.message);
   await sb.from("huddles").update({ result: null }).eq("id", huddleId);
   return { ...m, editToken };

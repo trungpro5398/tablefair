@@ -11,6 +11,8 @@ type Scenario = {
   kind: "place" | "movie";
   title: string;
   notes: string;
+  /** venue-local day of week (0 = Sunday) and time the outing happens */
+  at?: { weekday: number; time: string };
   friends: { name: string; favourites: [string, EntityType][] }[];
 };
 
@@ -33,6 +35,7 @@ const SCENARIOS: Record<"friends" | "family", Scenario> = {
     kind: "place",
     title: "Sunday lunch, three generations",
     notes: "Grandma likes it calm. Under $$$.",
+    at: { weekday: 0, time: "12:30" },
     friends: [
       { name: "Grandma Lan", favourites: [["Khánh Ly", AR], ["Trịnh Công Sơn", AR], ["The Scent of Green Papaya", M]] },
       { name: "Minh", favourites: [["Anthony Bourdain: Parts Unknown", TV], ["The Rolling Stones", AR], ["Heat", M]] },
@@ -66,6 +69,20 @@ async function demoFriends(scenario: keyof typeof SCENARIOS): Promise<Resolved> 
   return out;
 }
 
+/** The next such weekday in Melbourne, as venue-local "YYYY-MM-DDTHH:mm" (today counts if it's still early enough). */
+function nextInMelbourne(at: { weekday: number; time: string }) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Melbourne", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date())
+      .map((p) => [p.type, p.value]),
+  );
+  const today = new Date(Date.UTC(+parts.year, +parts.month - 1, +parts.day));
+  let ahead = (at.weekday - today.getUTCDay() + 7) % 7;
+  if (ahead === 0 && `${parts.hour}:${parts.minute}` > at.time) ahead = 7;
+  const d = new Date(today.getTime() + ahead * 864e5);
+  return `${d.toISOString().slice(0, 10)}T${at.time}`;
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { scenario?: string };
   const scenario = body.scenario === "family" ? "family" : "friends";
@@ -83,6 +100,7 @@ export async function POST(request: Request) {
     kind: SCENARIOS[scenario].kind,
     location: SCENARIOS[scenario].kind === "place" ? "Melbourne" : undefined,
     notes: SCENARIOS[scenario].notes,
+    when: SCENARIOS[scenario].at && nextInMelbourne(SCENARIOS[scenario].at!),
     isDemo: true,
   });
   for (const f of friends) if (f.picks.length) await addMember(huddle.id, f.name, f.picks);

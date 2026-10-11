@@ -13,7 +13,7 @@ const example = [
 const steps = [
   {
     title: "Start a huddle and share the link",
-    body: "Dinner spot, movie or TV show. Add must-haves like “one vegetarian, under $$$”.",
+    body: "Dinner spot, movie or TV show. Say when you’re going (we only suggest places open then) and any must-haves like “under $$$”.",
   },
   {
     title: "Everyone adds three favourites",
@@ -111,7 +111,7 @@ export default function Home() {
 
       <section className="grid gap-8 sm:grid-cols-[1fr_1.1fr] sm:items-center">
         <div>
-          <h2 className="font-display text-3xl font-semibold tracking-tight">For teams and platforms</h2>
+          <h2 className="font-display text-3xl font-semibold tracking-tight">For teams, platforms and AI assistants</h2>
           <p className="mt-2 text-muted">
             Team dinners, offsites, group trips and shared nights out have the same problem at a bigger scale. Booking,
             ticketing and travel platforms can call the same fair-pick engine directly: no AI cost per call, a few Qloo
@@ -121,6 +121,10 @@ export default function Home() {
             <li>Team-dinner and offsite tools: one venue the whole team can live with</li>
             <li>Ticketing and events: shows a group of friends will all enjoy</li>
             <li>Group travel: restaurants and activities for mixed-taste groups</li>
+            <li>
+              AI assistants: add <code className="rounded bg-soft px-1">/api/mcp</code> to Claude as a connector and ask for a fair
+              pick, or a link for your friends, right in the chat
+            </li>
           </ul>
           <a
             href="https://github.com/trungpro5398/tastebridge/blob/main/docs/API.md"

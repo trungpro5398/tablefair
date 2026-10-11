@@ -71,3 +71,10 @@ alter table members add column if not exists avoid text;
 
 -- A follow-up outing points at the previous one, so fairness can carry over between decisions.
 alter table huddles add column if not exists parent_id text;
+
+-- The plan: when the group is going (venue-local "2026-10-16T19:00", checked against Qloo opening hours),
+-- and for films/TV whether children are watching and the longest running time ({ when, kids, max_minutes }).
+alter table huddles add column if not exists plan jsonb;
+
+-- Private dietary needs per member (server-only; never selected in public reads; never attributed).
+alter table members add column if not exists needs text[];

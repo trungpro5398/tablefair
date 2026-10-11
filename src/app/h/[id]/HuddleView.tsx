@@ -1,5 +1,6 @@
 "use client";
 
+import { minutesLabel, whenLabel } from "@/lib/hours";
 import { useRouter } from "next/navigation";
 import { STEP_LABEL } from "@/lib/steps";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -8,7 +9,7 @@ import InvitePanel from "@/components/InvitePanel";
 import Avatar from "@/components/Avatar";
 import Results from "@/components/Results";
 import { memberColor } from "@/lib/members";
-import type { Decision, Entity, Huddle } from "@/lib/types";
+import { DIETS, type Decision, type Diet, type Entity, type Huddle } from "@/lib/types";
 
 const KIND_LABEL = { place: "Dinner spot", movie: "Movie", tv_show: "TV show" } as const;
 const KIND_NOUN = { place: "dinner spot", movie: "movie", tv_show: "show" } as const;
@@ -105,6 +106,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
   const [justJoined, setJustJoined] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [avoid, setAvoid] = useState("");
+  const [needs, setNeeds] = useState<Diet[]>([]);
   const [picks, setPicks] = useState<Entity[]>([]);
   const [joining, setJoining] = useState(false);
   const [deciding, setDeciding] = useState(false);
@@ -170,6 +172,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
       body: JSON.stringify({
         name: name.trim(),
         ...(avoid.trim() ? { avoid: avoid.trim() } : {}),
+        ...(huddle.kind === "place" && needs.length ? { needs } : {}),
         picks: picks.map(({ entity_id, name, type, image, meta, tags }) => ({
           entity_id,
           name,
@@ -188,6 +191,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
     } catch {}
     setJustJoined(data.id);
     setPicks([]);
+    setNeeds([]);
     // First one in: the next step is getting friends here.
     if (huddle.members.length < 2) setShowInvite(true);
     refresh();
@@ -514,6 +518,30 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
           <p className="mt-1 text-xs text-muted">
             One thing you&apos;d rather skip. It&apos;s ruled out quietly; nobody sees that it came from you.
           </p>
+          {huddle.kind === "place" && (
+            <fieldset className="mt-3">
+              <legend className="text-sm font-medium">
+                Dietary needs <span className="font-normal text-muted">(optional, private)</span>
+              </legend>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {DIETS.map((d) => {
+                  const on = needs.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setNeeds((n) => (on ? n.filter((x) => x !== d) : [...n, d]))}
+                      className={`rounded-full border px-3 py-1.5 text-sm capitalize transition ${on ? "border-brand bg-brand/10 font-medium" : "border-line hover:bg-soft"}`}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-muted">Only places Qloo lists as catering for it are suggested. The group sees what was covered, never who needed it.</p>
+            </fieldset>
+          )}
           <button
             onClick={join}
             disabled={joining || !name.trim() || picks.length === 0}
@@ -532,6 +560,9 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
         <p className="text-sm text-muted">
           {KIND_LABEL[huddle.kind]}
           {huddle.location && huddle.kind === "place" ? ` in ${huddle.location}` : ""}
+          {huddle.kind === "place" && whenLabel(huddle.when) ? `, ${whenLabel(huddle.when)}` : ""}
+          {huddle.kind !== "place" && huddle.kids ? ", children watching too" : ""}
+          {huddle.kind === "movie" && huddle.max_minutes ? `, up to ${minutesLabel(huddle.max_minutes)}` : ""}
         </p>
         <div className="mt-1 flex items-start justify-between gap-3">
           <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight">{huddle.title}</h1>

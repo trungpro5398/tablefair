@@ -40,7 +40,7 @@ test("no matching candidates returns an empty result without throwing", async ()
 });
 
 test("unknown required diet cannot silently become an unfiltered recommendation", async () => {
-  await assert.rejects(decideWithRules(huddle("gluten-free")), /Could not verify/);
+  await assert.rejects(decideWithRules(huddle("kosher")), /Could not verify/);
 });
 
 test("finalize rejects reordered, duplicate and unknown picks", async () => {
