@@ -12,13 +12,13 @@
 - **Private "not tonight"** and **fairness that carries over** to the group's next outing.
 - **An agent that can't make things up.** Claude plans the Qloo calls and writes the explanations, but code enforces the hard rules and rejects any claim the data doesn't support.
 
-**Evidence.** On 120 random groups with live Qloo data, the fair pick differs from the simple average in **40%** of groups, lifting the least-matched person by **14 points** for a 7-point drop in the group average.
+**Evidence.** On 120 random groups with live Qloo data, the fair pick differs from the simple average in **40%** of groups. Where they differ, the least-matched person moves up **14 percentile points** among tonight's options, for a 7-point drop in the group average.
 
 ## How it meets the judging criteria
 | Criterion | Where to look |
 |---|---|
 | **Technological implementation** (thorough, skilful use of Qloo) | Four Qloo endpoints doing five jobs: `/search` (favourites from any domain), `/v2/tags` (must-haves and private vetoes), `/v2/insights` twice (each person's own top matches plus the group shortlist, then the same shortlist re-scored per person with `filter.results.entities` + `feature.explainability`) and `/v2/analysis/compare` (where two people split). A Claude tool-use agent with five tools; constraints and grounding enforced in code; 50 unit tests; a reproducible evaluation script; every request listed in the app's "exact Qloo requests" panel. |
-| **Design** (a complete, coherent product) | One-click demos; share link and QR code; the result leads with the average-vs-fair chart; plain-English agent steps; talk back to re-plan; mobile and dark mode; Lighthouse accessibility 100. |
+| **Design** (a complete, coherent product) | One-click demos; share link and QR code; the result leads with the average-vs-fair chart; plain-English agent steps; talk back to re-plan; mobile and dark mode; Lighthouse accessibility 100 on the home and result pages (scores recorded in `docs/SUBMISSION.md`). |
 | **Potential impact** (a real problem for a real audience) | Families, friends and team outings; the three-generation demo is the core case. A rules-only `POST /api/v1/fair-pick` API for booking, ticketing and group-travel platforms. Honest measurement: a controlled evaluation plus a live `/impact` page that counts only real groups. |
 | **Quality of the idea** (creative, non-obvious use of Qloo) | Qloo is usually used to recommend to one person. TasteBridge uses it to measure *how much each person in a group cares* and protects them: cross-domain taste becomes a fairness signal, with flexibility, private vetoes and fairness over time. |
 
@@ -31,13 +31,13 @@ TasteBridge helps a group pick **one** dinner spot, movie or TV show that everyo
 1. One person starts a *huddle*, adds must-haves ("Priya is vegetarian, under $$$") and shares a link.
 2. Each friend adds up to three favourites from **any** domain: a film, an artist, a show, a book.
 3. **Everyone's taste goes on the table.** The shortlist holds options brought by each person's own taste (their top Qloo matches in the city, labelled "Brought by Linh") plus options from the group's combined taste. The agent then **scores that same shortlist against each person's own taste**.
-4. It recommends the option that maximises the **lowest taste match among people who actually have a preference tonight**. Everyone sees their own match and the favourite behind it ("driven mostly by *MasterChef: Australia*"). People Qloo sees as indifferent between tonight's options are marked **flexible tonight** instead of being "protected" on noise.
+4. It recommends the option that maximises the **lowest taste match among people who actually have a preference tonight**. Everyone sees their own match, their rank among tonight's options and, when one clearly stands out, the favourite behind it. People Qloo sees as indifferent between tonight's options are marked **flexible tonight** instead of being "protected" on noise.
 5. It also shows what a simple average would have picked and whose match would have been lowest there. Sometimes both pick the same thing, and the app says so.
 6. **Private "not tonight".** When joining, anyone can quietly rule one thing out ("sushi", "horror", "somewhere loud"). It becomes a hard Qloo exclusion; the result says what was ruled out, never who asked. ([live result](https://tastebridge-brown.vercel.app/h/djkxuqt5): "no Sushi" removed Kawa Sake Sushi Boat.)
 7. **Fairness that carries over.** "Plan the next outing" keeps the same group. Whoever gave way last time (below 65%) earns a small, capped credit that breaks close calls in their favour next time, but never overrides an option that is kinder to everyone. ([live result](https://tastebridge-brown.vercel.app/h/ny5qvyh9): Grandma Lan gave way at The Moat (57%) and carries a 4-point credit; The Moat is still the kindest option for all four, so it stays, and the result says why.)
 
 ## How Qloo makes it work
-Without Qloo there is no way to know how a fan of *Mad Max* and Daft Punk will feel about a vegetarian café. TasteBridge uses Qloo for every number:
+Without Qloo there is no way to know how a fan of *Mad Max* and Daft Punk will feel about a vegetarian café. Every score starts from Qloo affinities:
 
 - `/search`: cross-domain autocomplete for favourites (movies, TV, artists, books, podcasts, games).
 - `/v2/tags`: turns must-haves into tag filters. Dinner huddles also require `urn:tag:category:place:restaurant`, so bars and shops are excluded.
@@ -47,14 +47,7 @@ Without Qloo there is no way to know how a fan of *Mad Max* and Daft Punk will f
 
 Every result has a **Qloo evidence** panel listing the exact requests behind it: endpoint, filters, tag choices and result counts. Entity-id lists are summarised there, member names never go to Qloo, and the key stays on the server.
 
-## Request → result walkthrough (redacted)
-Four friends want dinner in Melbourne. The must-have is "Priya is vegetarian, under $$$".
-
-1. `GET /v2/tags?filter.query=vegetarian` returns candidate tags. The agent picks the dietary tag rather than a genre tag with a similar name, and the panel shows which tag it chose.
-2. `GET /v2/insights?filter.type=urn:entity:place&signal.interests.entities=<12 favourites, round-robin>&filter.tags=<vegetarian tag>&operator.filter.tags=intersection&filter.price_level.max=3&filter.location.query=Melbourne&feature.explainability=true` returns the group shortlist. The same request with **one member's favourites** as the signal returns that member's own top matches; the top 3 per person join the shortlist first.
-3. Four calls of `GET /v2/insights?...&signal.interests.entities=<one member's 3 favourites>&filter.results.entities=<shortlist ids>` score the same shortlist once per member. `query.affinity` is converted to a within-member percentile, and `query.explainability` names which favourite drove each match.
-4. Maximin and Nash pick the winner. The UI shows each member's match, the favourite behind it, and the simple-average alternative.
-
+## A real run
 **Real run (production, 10 Oct 2026): Sunday lunch, three generations** ([live result](https://tastebridge-brown.vercel.app/h/i8iiiqdb))
 - A Vietnamese-Australian family in Melbourne. Grandma Lan (Khánh Ly, Trịnh Công Sơn, *The Scent of Green Papaya*), Minh (*Anthony Bourdain: Parts Unknown*, The Rolling Stones, *Heat*), Linh (*The Great British Baking Show*, Céline Dion, *Pride and Prejudice*) and their teenager Mai (*Spider-Man: Into the Spider-Verse*, BTS, *Stranger Things*).
 - Must-have: "Grandma likes it calm. Under $$$." The code turns that into hard rules: up to $$, and no venue Qloo tags loud, noisy, bustling or lively.
@@ -96,7 +89,6 @@ The same flow works outside Melbourne. A New York dinner group (*Succession*, Be
 - Malls, markets and hotels that carry a restaurant tag are excluded, and drink-first venues are dropped using Qloo's `primary_genre`.
 - The default city and the "where to watch" region come from the browser time zone.
 
-We reviewed the product by walking through it as a judge in New York, a friend opening the link on a phone, and the organiser after the result. The issues and fixes are in `docs/UX_REVIEW.md`.
 
 ## Measuring whether it works for real groups
 Every result ends with three one-tap questions: did it work, were the percentages clear, and (once the evening has passed) did you actually go there.
@@ -138,4 +130,4 @@ With no keys it runs fully offline on a fictional demo catalogue (clearly labell
 - **Unit cost:** a full agent decision costs about **$0.05–0.13 of Claude** (measured; prompt caching on). The API path costs $0 in LLM.
 
 ## What's next
-Booking hand-off (tables and tickets) for platform partners, "veto" tokens, recalibrating the flexibility threshold from real `/impact` data, and a React Native app.
+Booking hand-off (tables and tickets) for platform partners, recalibrating the flexibility threshold and the carried-over credit from real `/impact` data, and a React Native app with group chat sharing.
