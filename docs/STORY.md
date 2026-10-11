@@ -1,3 +1,27 @@
+## In 30 seconds
+**Try it:** [tastebridge-brown.vercel.app](https://tastebridge-brown.vercel.app) (one click: "Demo: three generations, one lunch", no account) · **Watch:** the 80-second walkthrough on this page · **Code:** [github.com/trungpro5398/tastebridge](https://github.com/trungpro5398/tastebridge) (MIT)
+
+**The problem.** When a group picks a restaurant or film by averaging everyone's taste, the person who hates the choice disappears into the average.
+
+**One real run** ([live result](https://tastebridge-brown.vercel.app/h/i8iiiqdb)). A Vietnamese-Australian family in Melbourne adds favourite films, music and shows; Grandma likes it calm. A simple average picks Kawa Sake Sushi Boat, where Grandma Lan's match is **37%** (her 15th of 21 options). TasteBridge picks **The Moat**: Grandma Lan 57%, Minh 66%, Linh 66%, and nobody with a clear preference lower.
+
+**What is new here**
+- **Taste from any domain, no questionnaires.** Qloo maps Khánh Ly, *Heat* or *The Great British Baking Show* to restaurants and films.
+- **Everyone's taste on the table.** The shortlist mixes each person's own top Qloo matches with the group's shared taste, so the choice isn't between compromises.
+- **Fair to the people who care.** The pick protects the least-happy person with a clear preference; people Qloo sees as indifferent tonight are marked *flexible* instead of being "protected" on noise.
+- **Private "not tonight"** and **fairness that carries over** to the group's next outing.
+- **An agent that can't make things up.** Claude plans the Qloo calls and writes the explanations, but code enforces the hard rules and rejects any claim the data doesn't support.
+
+**Evidence.** On 120 random groups with live Qloo data, the fair pick differs from the simple average in **40%** of groups, lifting the least-matched person by **14 points** for a 7-point drop in the group average.
+
+## How it meets the judging criteria
+| Criterion | Where to look |
+|---|---|
+| **Technological implementation** (thorough, skilful use of Qloo) | Four Qloo endpoints doing five jobs: `/search` (favourites from any domain), `/v2/tags` (must-haves and private vetoes), `/v2/insights` twice (each person's own top matches plus the group shortlist, then the same shortlist re-scored per person with `filter.results.entities` + `feature.explainability`) and `/v2/analysis/compare` (where two people split). A Claude tool-use agent with five tools; constraints and grounding enforced in code; 50 unit tests; a reproducible evaluation script; every request listed in the app's "exact Qloo requests" panel. |
+| **Design** (a complete, coherent product) | One-click demos; share link and QR code; the result leads with the average-vs-fair chart; plain-English agent steps; talk back to re-plan; mobile and dark mode; Lighthouse accessibility 100. |
+| **Potential impact** (a real problem for a real audience) | Families, friends and team outings; the three-generation demo is the core case. A rules-only `POST /api/v1/fair-pick` API for booking, ticketing and group-travel platforms. Honest measurement: a controlled evaluation plus a live `/impact` page that counts only real groups. |
+| **Quality of the idea** (creative, non-obvious use of Qloo) | Qloo is usually used to recommend to one person. TasteBridge uses it to measure *how much each person in a group cares* and protects them: cross-domain taste becomes a fairness signal, with flexibility, private vetoes and fairness over time. |
+
 ## Inspiration
 "Where should we eat?" can take a group twenty minutes, and the quietest friend's taste usually gets ignored. Recommenders are built for one person. My PhD research is on explainable AI and user trust, so I wanted a group recommender that is **fair by design** and **shows its working**.
 
