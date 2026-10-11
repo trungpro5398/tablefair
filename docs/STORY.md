@@ -1,5 +1,5 @@
 ## In 30 seconds
-**Try it:** [tastebridge-brown.vercel.app](https://tastebridge-brown.vercel.app) (one click: "Demo: three generations, one lunch", no account) · **Watch:** the 80-second walkthrough on this page · **Code:** [github.com/trungpro5398/tastebridge](https://github.com/trungpro5398/tastebridge) (MIT)
+**Try it:** [tastebridge-brown.vercel.app](https://tastebridge-brown.vercel.app) (one click: "Demo: three generations, one lunch", no account) · **Watch:** the narrated walkthrough on this page (under 2 minutes) · **Code:** [github.com/trungpro5398/tastebridge](https://github.com/trungpro5398/tastebridge) (MIT)
 
 **The problem.** When a group picks a restaurant or film by averaging everyone's taste, the person who hates the choice disappears into the average.
 
