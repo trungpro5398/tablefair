@@ -1,4 +1,4 @@
-# Submission checklist (updated 11 October 2026)
+# Submission checklist (updated 12 October 2026)
 
 The project description submitted on Devpost is [docs/STORY.md](STORY.md).
 
@@ -35,6 +35,8 @@ Qloo kit guidance (`qloo-hackathon-kit/docs/SUBMISSION.md`, `SAFE_USE.md`):
 | Database exposure | RLS is enabled on every table with no policies; the anon key can neither read nor write any table. The server uses the service role only. |
 | Member edit credential | A separate `edit_token` is returned only at join, required for DELETE, and never selected in public reads (verified: no token / wrong token → 404). |
 | Private "not tonight" | Stored in `members.avoid`, read only by the decide route; `getHuddle` never selects it; the public huddle JSON exposes only `id, name, picks, joined_at` per member (verified on production). Claude gets a count only and is told never to attribute; the result says what was excluded, never who asked. |
+| Private dietary needs | Stored in `members.needs`, read only by the decide route (`getPrivate`), never selected by `getHuddle`. The result lists the needs that were covered and how many were added privately, never who added them. |
+| MCP server (`/api/mcp`) | Stateless JSON-RPC with no session state. `fair_pick` shares the API's 20/hour per-IP limit and `start_huddle` shares the create limit (30/hour). `get_huddle` returns only what the public huddle page shows. Tool errors are generic. |
 | Linked outings | `POST /api/huddles/[id]/next` is rate-limited per hashed IP (20/hour), requires a finished decision, and inherits the demo flag so test outings never reach `/impact`. |
 | Abuse and cost | Per-IP limits on search, demo, create, next, API and feedback. Agent runs are capped at 100/day and 6/hour per hashed IP and fall back to rules. Qloo calls go through a limiter with bounded retries. |
 | Prompt injection and grounding | User-typed fields are passed as data with explicit instructions to ignore embedded instructions. `finalize` rejects picks outside the scored ranking, ambience words the Qloo tags don't support, "loves/hates" predictions, false "your best" claims and internal field names. |
@@ -46,6 +48,13 @@ Qloo kit guidance (`qloo-hackathon-kit/docs/SUBMISSION.md`, `SAFE_USE.md`):
 - Rules: the project must stay free and working until the Judging Period ends (2–16 November 2026, US Eastern). Judges may also judge only from the text, images and video.
 - A Vercel cron calls `/api/health` daily (vercel.json). It writes one row, so the free-tier Supabase project never hits its 7-day inactivity pause, and reports `{ ok, db, qloo, agent }` with no data or keys.
 - Claude runs are capped (100/day, 6/hour per IP) and fall back to rule-based explanations, so a busy judging day cannot break the app.
+
+## Deploying the 12 October features
+Apply the schema first, then deploy. `getHuddle` selects `huddles.plan` and the decide route reads `members.needs`:
+```sql
+alter table huddles add column if not exists plan jsonb;
+alter table members add column if not exists needs text[];
+```
 
 ## Before pressing Submit
 - Re-run `npm test`, `npm run lint`, `npm run build`, and click both demos on production.

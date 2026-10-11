@@ -10,7 +10,11 @@ Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/).
 
 ## How it works
 
-1. Someone starts a **huddle** (dinner spot / movie / TV show, location, must-haves like "one vegetarian, under $$$") and shares the link.
+1. Someone starts a **huddle** and shares the link. A huddle has:
+   - what to choose: a dinner spot, a movie or a TV show;
+   - a location and must-haves, like "one vegetarian, under $$$";
+   - for dinner, **when** the group is going;
+   - for a film, whether **children are watching** and **how long they have**.
 2. Each person adds up to 3 favourites from **any** domain: films, shows, artists, books. Qloo's taste graph maps taste across domains.
 3. The **agent** (Claude, tool use) plans the decision:
    - `find_tags` turns must-haves into Qloo tag ids (`/v2/tags`).
@@ -19,7 +23,12 @@ Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/).
    - It ranks options with a **fairness rule** (protect the least-happy person who has a preference tonight), runs `compare_tastes` on the two people who disagree most, re-plans once when the protected person is in their bottom half, and calls `finalize`. Each plan step carries a plain-English reason shown to the group. Finalization enforces the scorer's top-three order and rejects ambience claims the Qloo tags don't support.
 4. The result shows a taste-match bar per person (with the favourite behind it when one clearly stands out, and each person's own #1 of tonight's options), a Maps / where-to-watch link, and **what a simple average would have picked and whose match would have been lowest there**.
 5. **Private "not tonight":** each person can quietly rule one thing out at join time (stored server-side only, never in public reads); it becomes a hard exclusion and the result never says who asked.
-6. **Fairness across outings:** "Plan the next outing" links a new huddle to this one; anyone who gave way (below 65%) earns a credit of half the gap (halved per older outing, capped at 15 points) in the next fair ranking (`carriedOver` in `src/lib/fairness.ts`); the credit breaks close calls and never overrides an option that is kinder to everyone.
+6. **Private dietary needs:** vegetarian, vegan, gluten-free, halal or kosher, chosen at join time. They are stored server-side only (`members.needs`) and become hard Qloo tag filters. The result lists what was covered, never who needed it.
+7. **Ready for the real evening:**
+   - Dinner shortlists use Qloo `filter.hours` for the day, then a local check that the venue is open at that time with an hour to spare (`src/lib/hours.ts`, including slots past midnight).
+   - Films and shows can be limited to G/PG (`filter.content_rating`) and to a running time.
+   - Picks show "Open until …", the Qloo rating and Call / Maps / Website buttons. For films and shows they show the running time, age rating, IMDb rating and a Netflix title link.
+8. **Fairness across outings:** "Plan the next outing" links a new huddle to this one; anyone who gave way (below 65%) earns a credit of half the gap (halved per older outing, capped at 15 points) in the next fair ranking (`carriedOver` in `src/lib/fairness.ts`); the credit breaks close calls and never overrides an option that is kinder to everyone.
 
 ### Talk back to the agent
 After a pick, the group can say "no Japanese, closer to the city", "somewhere quieter" or "surprise us". The agent maps that onto Qloo:
@@ -44,8 +53,14 @@ After each result, people get three one-tap questions:
 
 Answers are stored as append-only rows. **[/impact](https://tastebridge-brown.vercel.app/impact)** shows live, anonymous aggregates from real groups next to the live-Qloo evaluation. Demo and non-production runs are excluded via `huddles.is_demo`.
 
-### API for platforms
-`POST /api/v1/fair-pick` returns one fair pick with per-member evidence. It is deterministic and uses no LLM. See [docs/API.md](docs/API.md).
+### API for platforms, and an MCP server for agents
+- `POST /api/v1/fair-pick` returns one fair pick with per-member evidence. It is deterministic and uses no LLM.
+- `POST /api/mcp` offers the same pick to AI assistants over the Model Context Protocol, as three tools:
+  - `fair_pick` returns the pick with its evidence;
+  - `start_huddle` creates a real huddle for friends;
+  - `get_huddle` reports progress and the result.
+
+Add `https://tastebridge-brown.vercel.app/api/mcp` to Claude as a custom connector. See [docs/API.md](docs/API.md). A market scan with sources is in [docs/MARKET.md](docs/MARKET.md).
 
 ### Cost
 A full agent decision measures about **$0.05–0.13** with Claude Sonnet 5.5: prompt caching is on, and adaptive thinking was measured cheaper than `between_tools` for this task. Each decision stores `agent_usage`.
