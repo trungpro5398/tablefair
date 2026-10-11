@@ -478,6 +478,23 @@ export class DecisionSession {
       for (const m of p.per_member)
         if (/\b(your (best|top|favou?rite|#1|number one)|best (fit|match) for you)\b/i.test(m.reason) && ownTop(m.member_name) !== expected[i].entity.entity_id)
           return `error: for ${m.member_name}, ${expected[i].entity.name} is not their #1 on tonight's list (see members.own_top_match), so don't call it their best or top. Use their rank or taste match instead.`;
+    // third-person claims ("Ben's best match", "their top pick", "best match for Ben") must be true for the person named
+    const BEST = "(best|top|favou?rite|#1|number one)";
+    for (const [i, p] of picks.entries()) {
+      const optionId = expected[i].entity.entity_id;
+      const sentences = [p.headline, p.why_group, ...p.per_member.map((m) => m.reason)].join(". ").split(/(?<=[.!?])\s+/);
+      for (const sentence of sentences) {
+        const claims =
+          new RegExp(`\\btheir ${BEST}\\b`, "i").test(sentence) ||
+          new RegExp(`(?<!group|everyone|list)'s ${BEST}\\b`, "i").test(sentence) ||
+          new RegExp(`\\b${BEST} (fit|match|option|pick) for\\b`, "i").test(sentence);
+        if (!claims) continue;
+        const named = this.huddle.members.filter((m) => sentence.includes(m.name));
+        const wrong = named.length ? named.filter((m) => ownTop(m.name) !== optionId) : [{ name: "the person meant" }];
+        if (wrong.length)
+          return `error: "${sentence.trim().slice(0, 120)}" calls ${expected[i].entity.name} ${wrong.map((w) => w.name).join(", ")}'s best or top option, but it isn't their #1 on tonight's list (see members.own_top_match). Use their rank or taste match instead.`;
+      }
+    }
     for (const [i, p] of picks.entries()) {
       const tags = (expected[i].entity.tags ?? []).map((t) => t.name);
       const text = [p.headline, p.why_group, ...p.per_member.map((m) => m.reason)].join(" ");

@@ -270,3 +270,19 @@ test("'not tonight' matches whole words and only claims what it excluded", async
   assert.equal(session.shortlist.some((e) => /dumpling/i.test(e.name)), hadDumpling);
   assert.ok(!JSON.stringify(d.trace).includes("no zzqx"));
 });
+
+test("third-person 'their best match' claims must be true for the person named", async () => {
+  const session = new DecisionSession(huddle(""));
+  await session.generateCandidates({ priceMax: 4 });
+  await session.scoreMembers();
+  const first = session.toDecision("rules").picks[0];
+  const mine = (id: string) => (r: (typeof session.ranked)[number]) => r.scores.find((s) => s.member_id === id)?.percentile ?? 0;
+  const topOf = (id: string) => [...session.ranked].sort((a, b) => mine(id)(b) - mine(id)(a))[0].entity.entity_id;
+  const who = topOf("1") === first.entity_id ? null : "Friend 1";
+  const picks = session.toDecision("rules").picks.map((p, i) =>
+    i === 0 ? { ...p, why_group: "It gives the lowest-scoring person, Friend 1, their best match on the list." } : p,
+  );
+  const out = session.finalize(picks, "t");
+  if (who) assert.match(out, /isn't their #1/);
+  else assert.equal(out, "saved");
+});
