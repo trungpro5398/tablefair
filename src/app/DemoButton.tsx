@@ -25,7 +25,8 @@ export default function DemoButton({
       const res = await fetch("/api/demo", { method: "POST", body: JSON.stringify({ scenario }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.id) throw new Error(data.error ?? "Could not start the demo. Try again.");
-      router.push(`/h/${data.id}`);
+      // ?demo=1 starts the agent on arrival, so the first thing judges see is it working
+      router.push(`/h/${data.id}?demo=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect. Try again.");
       setBusy(false);

@@ -26,8 +26,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <img src="/icon.svg" alt="" className="size-8 rounded-[10px]" />
             TasteBridge
           </Link>
-          <nav className="flex items-center gap-4 text-sm text-muted">
-            <Link href="/#how" className="hover:text-foreground">
+          <nav className="flex items-center gap-3 whitespace-nowrap text-sm text-muted sm:gap-4">
+            <Link href="/#how" className="hidden hover:text-foreground min-[400px]:inline">
               How it works
             </Link>
             <Link href="/impact" className="hover:text-foreground">

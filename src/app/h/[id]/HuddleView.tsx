@@ -119,6 +119,9 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
   const [showInvite, setShowInvite] = useState(false);
   const [refineText, setRefineText] = useState("");
   const resultRef = useRef<HTMLDivElement>(null);
+  const decisionRef = useRef<HTMLDivElement>(null);
+  const autoRun = useRef(false);
+  const [demoVisit, setDemoVisit] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const [planning, setPlanning] = useState(false);
@@ -155,6 +158,19 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
       if (el instanceof HTMLDetailsElement) el.open = true;
     }
     if (hash) document.getElementById(hash)?.scrollIntoView({ block: "start" });
+  }, []);
+
+  // One-click demos arrive with ?demo=1: the group is already in, so start the agent straight away.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("demo") !== "1" || autoRun.current) return;
+    autoRun.current = true;
+    setDemoVisit(true);
+    params.delete("demo");
+    const qs = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`);
+    if (!initial.result && !initial.deciding && initial.members.length >= 2) decide();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Light-weight live updates: friends joining, results arriving.
@@ -202,6 +218,8 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
 
     setDeciding(true);
     setError("");
+    // The progress panel moves to the top; follow it so the agent's steps are on screen.
+    requestAnimationFrame(() => decisionRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
     try {
       const res = await fetch(`/api/huddles/${huddle.id}/decide`, {
         method: "POST",
@@ -293,16 +311,23 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
     }
   }
 
+  /** Open one of the result's collapsible panels (#how, #evidence) and bring it into view. */
+  function openPanel(id: string) {
+    const el = document.getElementById(id);
+    if (el instanceof HTMLDetailsElement) el.open = true;
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   const canDecide = huddle.members.length >= 2;
   const colors = Object.fromEntries(huddle.members.map((m, i) => [m.id, memberColor(i)]));
   const stage = huddle.result ? 3 : canDecide ? 2 : 1;
 
   const decisionSection = (
-    <>
+    <div ref={decisionRef} className="scroll-mt-4 space-y-6 empty:hidden">
       {deciding ? (
         <div className="rounded-3xl border border-line bg-card p-5 sm:p-6" role="status" aria-live="polite">
           <p className="font-display text-lg font-semibold">Finding your fair pick</p>
-          <p className="text-sm text-muted">The agent is asking Qloo about everyone&apos;s taste. About 20 seconds.</p>
+          <p className="text-sm text-muted">The agent is asking Qloo about everyone&apos;s taste. About 30 seconds.</p>
           <ol className="mt-4 space-y-3">
             {steps.map((st, i) => (
               <li key={i} className="flex gap-3 text-sm">
@@ -355,6 +380,34 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
 
       {huddle.result && !deciding && (
         <div ref={resultRef} className="scroll-mt-4 space-y-4">
+          {demoVisit && (
+            <div className="rounded-2xl bg-brand/10 py-3 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:px-4">
+              <p className="px-4 font-medium sm:mr-1 sm:px-0">A demo group on live Qloo data. Try next:</p>
+              <div className="mt-2 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:contents [&>button]:shrink-0 [&>button]:whitespace-nowrap">
+                <button
+                  onClick={() => decide(true, REFINE_CHIPS[huddle.kind][0])}
+                  className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft"
+                >
+                  Talk back: “{REFINE_CHIPS[huddle.kind][0].toLowerCase()}”
+                </button>
+                <button onClick={() => openPanel("how")} className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft">
+                  How the agent decided
+                </button>
+                <button onClick={() => openPanel("evidence")} className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft">
+                  The exact Qloo requests
+                </button>
+                <button
+                  onClick={() => {
+                    setShowJoin(true);
+                    requestAnimationFrame(() => document.getElementById("member-name")?.focus());
+                  }}
+                  className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft"
+                >
+                  Add your own taste
+                </button>
+              </div>
+            </div>
+          )}
           <Results
             decision={huddle.result}
             colors={colors}
@@ -436,7 +489,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
           />
         </div>
       )}
-    </>
+    </div>
   );
 
   const membersSection = (
@@ -597,7 +650,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
         </ol>
       </section>
 
-      {!joinedAs && !huddle.result && huddle.members.length > 0 && huddle.members.length < 8 && (
+      {!joinedAs && !huddle.result && !deciding && huddle.members.length > 0 && huddle.members.length < 8 && (
         <div className="flex flex-col gap-3 rounded-3xl bg-brand/10 p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
             <span className="font-semibold">You&apos;re invited.</span> Add three things you love (a film, a show, an

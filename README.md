@@ -89,7 +89,7 @@ npm run dev
 
 With no keys at all the app still runs end to end: Qloo calls use an offline demo catalogue (fictional venues, `src/lib/mock-data.ts`) and explanations use rules. Add `QLOO_API_KEY` for live Qloo data and `ANTHROPIC_API_KEY` for the agent.
 
-Click **"Try the 30-second demo"** on the home page for a pre-filled huddle of four friends with clashing tastes.
+Click one of the demo buttons on the home page ("three generations, one lunch" or "four friends, one movie"). It opens a pre-filled huddle and starts the agent straight away, so its steps stream in on arrival; the result then suggests what to try next (talk back, the agent's steps, the exact Qloo requests).
 
 Rules mode recognises vegetarian, vegan, gluten-free tag requirements and dollar-sign budgets such as `under $$`. It rejects unavailable diet tags. Other free-text requirements need manual review. In offline mode, demo places are fictional Melbourne venues and no geographic filtering is applied.
 
