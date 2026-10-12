@@ -286,3 +286,12 @@ test("third-person 'their best match' claims must be true for the person named",
   if (who) assert.match(out, /isn't their #1/);
   else assert.equal(out, "saved");
 });
+
+test("the most popular option that fits is scored for everyone as the no-taste baseline", async () => {
+  const result = await decideWithRules(huddle("under $$$"));
+  const pop = result.popular;
+  assert.ok(pop, "a taste-blind baseline is reported");
+  assert.equal(pop.scores.length, 2);
+  assert.ok((pop.entity.meta?.match(/\$+/)?.[0].length ?? 0) <= 2, "the baseline meets the same budget");
+  assert.ok(result.trace.some((s) => /most popular option that fits/.test(s.summary)));
+});

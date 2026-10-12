@@ -256,15 +256,18 @@ export type InsightsQuery = {
   openOn?: string;
   /** only these age ratings ("G", "PG", ...) */
   contentRatings?: string[];
+  /** no taste signal: Qloo ranks by popularity alone (the taste-blind baseline) */
+  popular?: boolean;
   take?: number;
 };
 
 export async function insights(q: InsightsQuery): Promise<InsightEntity[]> {
-  if (!q.signal.length) return [];
+  if (!q.signal.length && !q.popular) return [];
   const isPlace = q.type === "urn:entity:place";
+  const tasteBlind = !q.signal.length;
   const params: Params = {
     "filter.type": q.type,
-    "signal.interests.entities": q.signal.join(","),
+    "signal.interests.entities": tasteBlind ? undefined : q.signal.join(","),
     "filter.results.entities": q.candidates?.join(","),
     "filter.location.query": isPlace ? q.location : undefined,
     "filter.tags": q.tags?.join(","),
@@ -276,7 +279,9 @@ export async function insights(q: InsightsQuery): Promise<InsightEntity[]> {
     "filter.release_year.min": !isPlace ? q.yearMin : undefined,
     "filter.hours": isPlace ? q.openOn : undefined,
     "filter.content_rating": !isPlace && q.contentRatings?.length ? q.contentRatings.join(",") : undefined,
-    "feature.explainability": true,
+    // with no signal Qloo needs at least one filter; places always have a location
+    "filter.popularity.min": tasteBlind && !isPlace ? 0.5 : undefined,
+    "feature.explainability": tasteBlind ? undefined : true,
     take: Math.min(q.take ?? 20, 50),
   };
   if (qlooMode === "mock") {

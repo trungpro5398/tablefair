@@ -95,3 +95,17 @@ test("search hits must plausibly match what was typed", async () => {
   assert.equal(confidentMatch("Trinh Cong Son", "Trịnh Công Sơn"), true);
   assert.equal(confidentMatch("the godfather", "The Godfather"), true);
 });
+
+test("taste-blind query sends no taste signal and asks Qloo to rank by popularity", async (t) => {
+  const { insights, withQlooLog } = await qloo;
+  t.mock.method(globalThis, "fetch", async () =>
+    Response.json({ results: { entities: [{ entity_id: "p1", name: "Popular", popularity: 0.99 }] } }),
+  );
+  const { result, calls } = await withQlooLog(() => insights({ type: "urn:entity:movie", signal: [], popular: true, take: 5 }));
+  assert.equal(result[0].entity_id, "p1");
+  assert.equal(calls[0].params["signal.interests.entities"], undefined);
+  assert.equal(calls[0].params["feature.explainability"], undefined);
+  assert.equal(calls[0].params["filter.popularity.min"], "0.5");
+  // without the flag an empty signal still means "nothing to ask"
+  assert.deepEqual(await insights({ type: "urn:entity:movie", signal: [] }), []);
+});

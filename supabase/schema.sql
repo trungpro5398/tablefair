@@ -1,4 +1,4 @@
--- TasteBridge schema. Run once in the Supabase SQL editor.
+-- TableFair schema. Run once in the Supabase SQL editor.
 -- The app talks to these tables only from server routes using the service-role key,
 -- so RLS is enabled with no public policies (anon key gets nothing).
 

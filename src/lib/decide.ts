@@ -87,6 +87,9 @@ export class DecisionSession {
   perMember: Record<string, InsightEntity[]> = {};
   ranked: RankedCandidate[] = [];
   majority: RankedCandidate | null = null;
+  /** the most popular option that meets the same must-haves, found with no taste data (the "without Qloo taste" baseline) */
+  popular: RankedCandidate | null = null;
+  private popularId: string | null = null;
   filters: Record<string, string | number> = {};
   trace: Decision["trace"] = [];
   picks: Pick[] | null = null;
@@ -246,6 +249,7 @@ export class DecisionSession {
       insights({
         type: this.type,
         signal,
+        popular: !signal.length,
         location,
         tags,
         avoidTags: avoid,
@@ -259,8 +263,10 @@ export class DecisionSession {
         take: isPlace ? Math.min(n + 20, 50) : n,
       });
     const members = this.huddle.members.filter((m) => m.picks.length);
-    const [raw, ...own] = await Promise.all([
+    const [raw, popularRaw, ...own] = await Promise.all([
       query(this.groupSignal(), take),
+      // the same must-haves with no taste signal: what a listings app would put first
+      query([], 10),
       ...(members.length > 1 ? members.map((m) => query(m.picks.map((p) => p.entity_id), CHAMPIONS_EACH * 2)) : []),
     ]);
     const avoidSet = new Set(avoid);
@@ -292,8 +298,13 @@ export class DecisionSession {
     const merged = [...tops, ...dining.filter((e) => !championOf.has(e.entity_id))].map((e) =>
       championOf.has(e.entity_id) ? { ...e, champion_of: championOf.get(e.entity_id) } : e,
     );
-    const { kept, droppedFar } = maxKm ? withinRadius(merged, maxKm) : { kept: merged, droppedFar: 0 };
+    const popularPick = usable(popularRaw)[0];
+    const pool = popularPick && !merged.some((e) => e.entity_id === popularPick.entity_id) ? [...merged, popularPick] : merged;
+    const { kept, droppedFar } = maxKm ? withinRadius(pool, maxKm) : { kept: pool, droppedFar: 0 };
     const next = kept.slice(0, take);
+    // the popular option is scored with everyone else, so its matches are on the same scale
+    const keptPopular = popularPick && kept.find((e) => e.entity_id === popularPick.entity_id);
+    if (keptPopular && !next.includes(keptPopular)) next.push(keptPopular);
     const sameList =
       this.picks === null &&
       this.ranked.length > 0 &&
@@ -306,6 +317,7 @@ export class DecisionSession {
       return this.shortlist;
     }
     this.shortlist = next;
+    this.popularId = keptPopular ? keptPopular.entity_id : null;
     this.shortlistsTried += 1;
     if (this.shortlistsTried > 1 && (opts.preferTags?.length || opts.area)) this.targetedReplan = true;
     const brought = this.shortlist.filter((e) => e.champion_of).length;
@@ -327,6 +339,7 @@ export class DecisionSession {
     this.ranked = [];
     this.perMember = {};
     this.majority = null;
+    this.popular = null;
     this.picks = null;
     this.tradeoffNote = "";
     this.changeNote = "";
@@ -394,7 +407,9 @@ export class DecisionSession {
     const before = this.lastTop;
     this.ranked = ranked;
     this.majority = majority;
+    this.popular = ranked.find((r) => r.entity.entity_id === this.popularId) ?? null;
     const top = ranked[0];
+    const popular = this.popular;
     this.lastTop = top && { id: top.entity.entity_id, name: top.entity.name };
     const sameTop = before && top && before.id === top.entity.entity_id;
     const moved = before && !sameTop ? ranked.find((r) => r.entity.entity_id === before.id) : undefined;
@@ -404,6 +419,11 @@ export class DecisionSession {
         (majority && top && majority.entity.entity_id !== top.entity.entity_id
           ? ` A simple average would pick ${majority.entity.name}, where someone with a clear preference drops to ${pct(majority.min_satisfaction)}.`
           : " A simple average would pick the same.") +
+        (popular && top && popular.entity.entity_id !== top.entity.entity_id
+          ? ` Without taste data, the most popular option that fits is ${popular.entity.name}, where someone with a clear preference is at ${pct(popular.min_satisfaction)}.`
+          : popular
+            ? " It is also the most popular option that fits."
+            : "") +
         (sameTop ? " The fairest option stayed the same." : "") +
         (before && !sameTop ? ` The previous favourite, ${before.name}, ${moved ? `now has a lowest match of ${pct(moved.min_satisfaction)}` : "is no longer on the list"}.` : ""),
     );
@@ -479,6 +499,10 @@ export class DecisionSession {
         name: this.majority.entity.name,
         lowest_match_among_people_with_a_clear_preference: pct(this.majority.min_satisfaction),
         lowest_match_member: [...this.majority.scores].sort((a, b) => a.satisfaction - b.satisfaction)[0]?.member_name,
+      },
+      most_popular_option_without_taste_data: this.popular && {
+        name: this.popular.entity.name,
+        lowest_match_among_people_with_a_clear_preference: pct(this.popular.min_satisfaction),
       },
     };
   }
@@ -559,6 +583,7 @@ export class DecisionSession {
       when: this.filters.open_at ? String(this.filters.open_at) : undefined,
       ranked: withPersonalTops(this.ranked, this.huddle.members.map((m) => m.id)),
       majority: this.majority,
+      popular: this.popular,
       picks,
       tradeoff_note: this.tradeoffNote || ruleTradeoff(this.ranked[0], this.majority),
       trace: this.trace,

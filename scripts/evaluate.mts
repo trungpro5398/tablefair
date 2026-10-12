@@ -1,6 +1,6 @@
 /**
  * Offline evaluation: how much does maximin protect the least-matched member compared with
- * picking the highest average, on live Qloo data?
+ * picking the highest average, or the most popular option with no taste data, on live Qloo data?
  *
  *   QLOO_API_KEY=... node --conditions=react-server --import tsx scripts/evaluate.mts [groups=20] [seed=7]
  *
@@ -66,6 +66,10 @@ type Row = {
   rawGainShare: number;
   flexible: number;
   people: number;
+  /** the most popular option meeting the same must-haves, found with no taste signal */
+  popMin?: number;
+  popMean?: number;
+  popDiffers?: boolean;
 };
 const rows: Row[] = [];
 const kinds = ["place", "movie"] as const;
@@ -111,6 +115,13 @@ for (let g = 0; g < GROUPS; g++) {
       plainDiffers: plain.entity.entity_id !== fair.entity.entity_id,
       flexible: fair.scores.filter((x) => x.flexible).length,
       people: n,
+      ...(s.popular
+        ? {
+            popMin: s.popular.min_satisfaction,
+            popMean: s.popular.mean_satisfaction,
+            popDiffers: s.popular.entity.entity_id !== fair.entity.entity_id,
+          }
+        : {}),
     });
     process.stdout.write(".");
   } catch (err) {
@@ -132,3 +143,10 @@ console.log(`  gain where they differ: +${pp(mean(differ.map((r) => r.fairMin - 
 console.log(`  cost where they differ: -${pp(mean(differ.map((r) => r.avgMean - r.fairMean)))} of group-average match`);
 console.log(`  raw Qloo affinity gain for that person: median +${median(differ.map((r) => r.rawGain)).toFixed(3)}, i.e. ${(100 * median(differ.map((r) => r.rawGainShare))).toFixed(0)}% of their own spread over the shortlist`);
 console.log(`flexibility-awareness changed the pick vs plain maximin: ${rows.filter((r) => r.plainDiffers).length}/${rows.length}`);
+const withPop = rows.filter((r) => r.popMin !== undefined);
+const popDiff = withPop.filter((r) => r.popDiffers);
+console.log(`\nwithout taste data (most popular option meeting the same must-haves), ${withPop.length} groups:`);
+console.log(`  it differs from the fair pick: ${popDiff.length}/${withPop.length} (${((100 * popDiff.length) / Math.max(1, withPop.length)).toFixed(0)}%)`);
+console.log(`  least-matched person with a preference, all groups: ${pp(mean(withPop.map((r) => r.popMin!)))} at the popular pick vs ${pp(mean(withPop.map((r) => r.fairMin)))} at the fair pick`);
+console.log(`  group-average match, all groups: ${pp(mean(withPop.map((r) => r.popMean!)))} at the popular pick vs ${pp(mean(withPop.map((r) => r.fairMean)))} at the fair pick`);
+console.log(`  someone with a preference below 25% at the popular pick: ${withPop.filter((r) => r.popMin! < 0.25).length}/${withPop.length}; at the fair pick: ${withPop.filter((r) => r.fairMin < 0.25).length}/${withPop.length}`);

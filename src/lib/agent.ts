@@ -1,5 +1,5 @@
 /**
- * The TasteBridge agent: Claude plans the decision, calls Qloo through our tools, checks
+ * The TableFair agent: Claude plans the decision, calls Qloo through our tools, checks
  * fairness, retries with different constraints if someone is left unhappy, and writes
  * explanations grounded only in tool output.
  */
@@ -15,7 +15,7 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
 const THINKING = process.env.AGENT_THINKING ?? "adaptive";
 const EFFORT = (process.env.AGENT_EFFORT ?? "medium") as "low" | "medium" | "high";
 
-const SYSTEM = `You are TasteBridge, a facilitator that helps a group choose ONE option everyone can enjoy.
+const SYSTEM = `You are TableFair, a facilitator that helps a group choose ONE option everyone can enjoy.
 
 You have tools backed by Qloo's taste graph and a fairness scorer. Work like this:
 1. Read the huddle's notes for hard constraints (diet, budget, vibe). Use find_tags to turn them into Qloo tag ids when useful, and price_level_max for budgets ("$" = 1 … "$$$$" = 4; "under $$$" means at most $$). Diet, budget and calm/quiet requests are already enforced in code; you don't need to look them up.

@@ -105,6 +105,7 @@ export async function fairPick(input: FairPickInput) {
     pick: option(d.ranked[0], d.when),
     runner_ups: d.ranked.slice(1, 3).map((r) => option(r, d.when)),
     simple_average_pick: d.majority ? option(d.majority, d.when) : null,
+    most_popular_without_taste_data: d.popular ? option(d.popular, d.when) : null,
     tradeoff: d.tradeoff_note,
     compatibility: d.compatibility ?? null,
     resolved_favourites: result.resolved.map((m) => ({ name: m.name, favourites: m.picks.map((p) => ({ name: p.name, type: p.type })) })),

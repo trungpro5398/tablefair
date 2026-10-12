@@ -1,7 +1,7 @@
 /**
- * TasteBridge as an MCP server (Streamable HTTP, stateless, JSON responses), so other agents
+ * TableFair as an MCP server (Streamable HTTP, stateless, JSON responses), so other agents
  * (Claude, ChatGPT, team bots) can ask for a fair group pick or start a real huddle for their users.
- * Add it as a custom connector: https://tastebridge-brown.vercel.app/api/mcp
+ * Add it as a custom connector: https://tablefair.vercel.app/api/mcp
  */
 import * as z from "zod";
 import { CreateHuddle } from "../schemas";
@@ -30,7 +30,7 @@ const TOOLS = [
     name: "fair_pick",
     title: "Fair group pick",
     description:
-      "Pick ONE dinner spot, movie or TV show for a group with different tastes. Each person gives 1–3 favourite films, shows, artists or books; Qloo's taste graph scores a shortlist for each person, and TasteBridge picks the option where the least-matched person with a preference is best off (maximin, Nash tie-break). Returns the pick, two runner-ups, what a simple average would pick instead, per-person matches and the Qloo requests made. Matches are within-shortlist percentiles of audience-level affinities, not predictions about individuals. Takes 10–30 seconds.",
+      "Pick ONE dinner spot, movie or TV show for a group with different tastes. Each person gives 1–3 favourite films, shows, artists or books; Qloo's taste graph scores a shortlist for each person, and TableFair picks the option where the least-matched person with a preference is best off (maximin, Nash tie-break). Returns the pick, two runner-ups, what a simple average would pick instead, per-person matches and the Qloo requests made. Matches are within-shortlist percentiles of audience-level affinities, not predictions about individuals. Takes 10–30 seconds.",
     inputSchema: schema(FairPickInput),
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -38,7 +38,7 @@ const TOOLS = [
     name: "start_huddle",
     title: "Start a huddle for real friends",
     description:
-      "Create a TasteBridge huddle and get a link to send to the group chat. Each friend opens it, adds three favourites (no account) and can privately rule one thing out or add dietary needs; then anyone presses one button for the fair pick. Use this when the people are not all in this conversation. Check progress with get_huddle.",
+      "Create a TableFair huddle and get a link to send to the group chat. Each friend opens it, adds three favourites (no account) and can privately rule one thing out or add dietary needs; then anyone presses one button for the fair pick. Use this when the people are not all in this conversation. Check progress with get_huddle.",
     inputSchema: schema(CreateHuddle),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
@@ -52,7 +52,7 @@ const TOOLS = [
 ];
 
 const INSTRUCTIONS =
-  "TasteBridge helps groups choose one dinner spot, movie or TV show fairly. Use fair_pick when you already know each person's favourites; use start_huddle to send friends a link when you don't. Present the pick with the trade-off versus the simple average, and say that matches describe what fans of each person's favourites tend to like, not how they will feel.";
+  "TableFair helps groups choose one dinner spot, movie or TV show fairly. Use fair_pick when you already know each person's favourites; use start_huddle to send friends a link when you don't. Present the pick with the trade-off versus the simple average, and say that matches describe what fans of each person's favourites tend to like, not how they will feel.";
 
 type Rpc = { jsonrpc: "2.0"; id?: string | number | null; method?: string; params?: Record<string, unknown> };
 
@@ -85,7 +85,7 @@ async function callTool(name: string, args: unknown, request: Request) {
     return toolResult({
       huddle_id: h.id,
       url,
-      message_for_the_group: `${h.title}: add your 3 favourite films, shows or artists here and TasteBridge finds the fairest ${h.kind === "place" ? "spot" : h.kind === "movie" ? "movie" : "show"} for all of us${h.kind === "place" && h.when ? ` (${whenLabel(h.when)})` : ""}: ${url}`,
+      message_for_the_group: `${h.title}: add your 3 favourite films, shows or artists here and TableFair finds the fairest ${h.kind === "place" ? "spot" : h.kind === "movie" ? "movie" : "show"} for all of us${h.kind === "place" && h.when ? ` (${whenLabel(h.when)})` : ""}: ${url}`,
       next: "Share the url. Once two or more people have joined, anyone on the page can press 'Find our fair pick'. Use get_huddle to check.",
     });
   }
@@ -114,6 +114,7 @@ async function callTool(name: string, args: unknown, request: Request) {
               per_member: top.scores.map((s) => ({ name: s.member_name, match: s.satisfaction, ...(s.flexible ? { flexible_tonight: true } : {}) })),
             },
             simple_average_pick: d.majority?.entity.name ?? null,
+            most_popular_without_taste_data: d.popular?.entity.name ?? null,
             tradeoff: d.tradeoff_note,
             group_message: d.group_message,
           }
@@ -132,7 +133,7 @@ async function handle(msg: Rpc, request: Request) {
       return ok(msg.id, {
         protocolVersion: PROTOCOLS.includes(asked) ? asked : PROTOCOLS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "tastebridge", title: "TasteBridge", version: "1.0.0" },
+        serverInfo: { name: "tablefair", title: "TableFair", version: "1.0.0" },
         instructions: INSTRUCTIONS,
       });
     }
@@ -165,7 +166,7 @@ export async function POST(request: Request) {
 
 /** No server-initiated stream: this server only answers requests. */
 export function GET() {
-  return new Response("TasteBridge MCP endpoint: POST JSON-RPC here (Streamable HTTP).", { status: 405, headers: { allow: "POST" } });
+  return new Response("TableFair MCP endpoint: POST JSON-RPC here (Streamable HTTP).", { status: 405, headers: { allow: "POST" } });
 }
 
 export const DELETE = GET;

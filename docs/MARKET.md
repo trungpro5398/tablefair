@@ -19,16 +19,16 @@ A desk scan of group-decision products for "where do we eat?" and "what do we wa
 - None shows who would have lost under a simple vote.
 - None carries fairness from one outing to the next.
 
-Most also need every person to swipe through options. TasteBridge needs three favourites per person.
+Most also need every person to swipe through options. TableFair needs three favourites per person.
 
-## Table stakes that TasteBridge now covers
+## Table stakes that TableFair now covers
 - **Open when you're going.** Qloo opening hours (`filter.hours` plus a local time check), shown as "Open until 11 pm". In a live Melbourne run on a Monday at 7 pm, 4 of the top 5 options without this check were closed.
 - **Dietary needs, privately.** Vegetarian, vegan, gluten-free, halal and kosher are hard Qloo filters. Each person adds their own needs without saying so in front of the group, which matters because some needs reveal religion or health.
 - **Films that fit the evening.** "Children watching too" applies Qloo `filter.content_rating`. "How long have you got?" filters by running time. Each pick shows its age rating, IMDb rating and a Netflix title link when Qloo has one.
 - **Act on it.** Open in Maps, Call to book, Website, the venue's Qloo rating, and a ready-to-send group message.
 - **Lives where agents live.** An MCP server lets Claude, or any other MCP client, run a fair pick or start a huddle and send the link to the group chat.
 
-## Where TasteBridge is different
+## Where TableFair is different
 - **Fairness is the objective, not consensus.** The pick protects the least-matched person who has a clear preference (maximin), with Nash welfare as the tie-break. This follows the group-recommender research on "least misery" and on fairness across a sequence of decisions.
 - **It shows its working.** The average pick appears next to the fair pick, with each person's rank and the exact Qloo requests behind them.
 - **Fairness over time.** Whoever gave way last time gets a small, capped credit at the next outing.

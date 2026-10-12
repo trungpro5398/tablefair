@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { impactStats, type Rate } from "@/lib/impact";
 
 export const metadata: Metadata = {
-  title: "Impact · TasteBridge",
-  description: "Live, anonymous numbers from real TasteBridge groups, plus our evaluation on live Qloo data.",
+  title: "Impact · TableFair",
+  description: "Live, anonymous numbers from real TableFair groups, plus our evaluation on live Qloo data.",
 };
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -30,7 +30,7 @@ async function Live() {
   if (!s.groups)
     return (
       <p className="rounded-2xl border border-dashed border-line p-5 text-muted">
-        No real groups yet. Numbers appear here as people use TasteBridge; demo and test runs are not counted.
+        No real groups yet. Numbers appear here as people use TableFair; demo and test runs are not counted.
       </p>
     );
   return (
@@ -65,7 +65,7 @@ export default function ImpactPage() {
         <h1 className="font-display text-4xl font-semibold tracking-tight">Does fair picking help real groups?</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted">
           Two kinds of evidence: a controlled evaluation on live Qloo data, and live, anonymous numbers from groups using
-          TasteBridge.
+          TableFair.
         </p>
       </section>
 
@@ -74,7 +74,7 @@ export default function ImpactPage() {
         <p className="mt-1 text-sm text-muted">
           120 random groups of 3–5 people (60 dinner, 60 movie) in two runs, same pipeline as the app, no LLM.
           Synthetic groups.{" "}
-          <a className="text-brand underline-offset-4 hover:underline" href="https://github.com/trungpro5398/tastebridge/blob/main/docs/EVALUATION.md">
+          <a className="text-brand underline-offset-4 hover:underline" href="https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md">
             Method
           </a>
         </p>

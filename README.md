@@ -1,10 +1,10 @@
-# TasteBridge
+# TableFair
 
 **Watch the 2-minute narrated walkthrough:** [docs/media/tastebridge-demo.mp4](docs/media/tastebridge-demo.mp4). It shows real runs on live Qloo data, no mock-ups: the production showcase run of 12 Oct, plus local runs for the opening-hours, dietary and film options.
 
-**Live:** https://tastebridge-brown.vercel.app
+**Live:** https://tablefair.vercel.app
 
-**Decide together, fairly.** TasteBridge is an AI agent that helps a group of friends, a couple or a family pick *one* dinner spot, movie or show that everyone will enjoy, and explains the trade-off in plain words.
+**Decide together, fairly.** TableFair is an AI agent that helps a group of friends, a couple or a family pick *one* dinner spot, movie or show that everyone will enjoy, and explains the trade-off in plain words.
 
 Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/).
 
@@ -51,7 +51,7 @@ After each result, people get three one-tap questions:
 2. Were the percentages clear?
 3. Once the evening has passed: did you go there?
 
-Answers are stored as append-only rows. **[/impact](https://tastebridge-brown.vercel.app/impact)** shows live, anonymous aggregates from real groups next to the live-Qloo evaluation. Demo and non-production runs are excluded via `huddles.is_demo`.
+Answers are stored as append-only rows. **[/impact](https://tablefair.vercel.app/impact)** shows live, anonymous aggregates from real groups next to the live-Qloo evaluation. Demo and non-production runs are excluded via `huddles.is_demo`.
 
 ### API for platforms, and an MCP server for agents
 - `POST /api/v1/fair-pick` returns one fair pick with per-member evidence. It is deterministic and uses no LLM.
@@ -60,7 +60,7 @@ Answers are stored as append-only rows. **[/impact](https://tastebridge-brown.ve
   - `start_huddle` creates a real huddle for friends;
   - `get_huddle` reports progress and the result.
 
-Add `https://tastebridge-brown.vercel.app/api/mcp` to Claude as a custom connector. See [docs/API.md](docs/API.md). A market scan with sources is in [docs/MARKET.md](docs/MARKET.md).
+Add `https://tablefair.vercel.app/api/mcp` to Claude as a custom connector. See [docs/API.md](docs/API.md). A market scan with sources is in [docs/MARKET.md](docs/MARKET.md).
 
 ### Cost
 A full agent decision measures about **$0.05–0.13** with Claude Sonnet 5.5: prompt caching is on, and adaptive thinking was measured cheaper than `between_tools` for this task. Each decision stores `agent_usage`.
@@ -106,9 +106,9 @@ npm run test:smoke       # creates disposable local huddles in all three categor
 npm run check:setup      # reports missing configuration without printing secrets
 ```
 
-**Live verification (12 Oct 2026, production, [result](https://tastebridge-brown.vercel.app/h/x7jg7f4q)):** the same demo, now for Sunday at 12:30 pm, only considers places open then (3 that close too soon were skipped). The fair pick is **ima Asa Yoru**, "open until 3 pm": Grandma Lan 68%, Minh 65%, Linh 69%, with Mai flexible. A simple average picks Alimentari, where Grandma Lan drops to 50%, her 8th of 15. That run made 10 Qloo calls and cost $0.09 of Claude.
+**Live verification (12 Oct 2026, production, [result](https://tablefair.vercel.app/h/x7jg7f4q)):** the same demo, now for Sunday at 12:30 pm, only considers places open then (3 that close too soon were skipped). The fair pick is **ima Asa Yoru**, "open until 3 pm": Grandma Lan 68%, Minh 65%, Linh 69%, with Mai flexible. A simple average picks Alimentari, where Grandma Lan drops to 50%, her 8th of 15. That run made 10 Qloo calls and cost $0.09 of Claude.
 
-**Earlier run (10 Oct 2026, before the opening-hours check, [result](https://tastebridge-brown.vercel.app/h/i8iiiqdb)):** the three-generations demo ("Grandma likes it calm. Under $$$.") put 21 restaurants on the table, 9 of them brought by one person's own taste. The fair pick was **The Moat** (Grandma Lan 57%, Minh 66%, Linh 66%, Mai 57%); a simple average picks Kawa Sake Sushi Boat, where Grandma Lan drops to 37%. Claude compared the two people who disagree most ("Grandma Lan rates Ichigo at 83% while Linh is at 23%") and described The Moat only with its Qloo tags (Intimate, Quiet). 10 Qloo calls, $0.08 of Claude.
+**Earlier run (10 Oct 2026, before the opening-hours check, [result](https://tablefair.vercel.app/h/i8iiiqdb)):** the three-generations demo ("Grandma likes it calm. Under $$$.") put 21 restaurants on the table, 9 of them brought by one person's own taste. The fair pick was **The Moat** (Grandma Lan 57%, Minh 66%, Linh 66%, Mai 57%); a simple average picks Kawa Sake Sushi Boat, where Grandma Lan drops to 37%. Claude compared the two people who disagree most ("Grandma Lan rates Ichigo at 83% while Linh is at 23%") and described The Moat only with its Qloo tags (Intimate, Quiet). 10 Qloo calls, $0.08 of Claude.
 
 In offline mode (no keys), rules pick The Green Fig: Josh's match is 46% there, versus 39% at the average pick.
 

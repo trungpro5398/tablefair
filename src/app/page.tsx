@@ -9,7 +9,7 @@ const PEOPLE = ["Grandma Lan", "Minh", "Linh", "Mai"];
 const FLEXIBLE = ["Mai"];
 const example = [
   { label: "A simple average picks", name: "Alimentari", v: [50, 76, 76, 43], fair: false },
-  { label: "TasteBridge picks", name: "ima Asa Yoru", v: [68, 65, 69, 30], fair: true },
+  { label: "TableFair picks", name: "ima Asa Yoru", v: [68, 65, 69, 30], fair: true },
 ];
 
 const steps = [
@@ -30,7 +30,7 @@ const steps = [
 const why = [
   {
     title: "Fair, not loudest",
-    body: "Averages hide the person who hates the choice. TasteBridge lifts the lowest match first and shows what the average would have done.",
+    body: "Averages hide the person who hates the choice. TableFair lifts the lowest match first and shows what the average would have done.",
   },
   {
     title: "Shows its working",
@@ -51,8 +51,9 @@ export default function Home() {
             Everyone&apos;s taste on the table. One fair pick.
           </h1>
           <p className="mt-5 max-w-md text-lg text-muted">
-            Everyone adds three favourite films, shows or artists. An agent asks Qloo&apos;s taste graph what the whole
-            group will like, and picks the dinner spot or movie that leaves nobody behind.
+            For families and friends with different tastes, ages and diets. Everyone adds three favourite films, shows or
+            artists. An agent asks Qloo&apos;s taste graph what each person will like, and picks the dinner spot or movie
+            that leaves nobody behind.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <DemoButton scenario="family" label="Demo: three generations, one lunch" />
@@ -130,7 +131,7 @@ export default function Home() {
             </li>
           </ul>
           <a
-            href="https://github.com/trungpro5398/tastebridge/blob/main/docs/API.md"
+            href="https://github.com/trungpro5398/tablefair/blob/main/docs/API.md"
             className="mt-4 inline-block font-medium text-brand underline-offset-4 hover:underline"
           >
             Read the API docs
@@ -168,7 +169,7 @@ export default function Home() {
         Taste matches come from Qloo and describe what people with similar tastes tend to like, not a prediction about
         any one person. No personal data is sent to Qloo. Built for the Qloo Agentic
         Hackathon.{" "}
-        <a className="underline" href="https://github.com/trungpro5398/tastebridge">
+        <a className="underline" href="https://github.com/trungpro5398/tablefair">
           Source on GitHub
         </a>
         , MIT licence.

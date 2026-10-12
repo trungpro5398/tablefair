@@ -654,7 +654,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
         <div className="flex flex-col gap-3 rounded-3xl bg-brand/10 p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
             <span className="font-semibold">You&apos;re invited.</span> Add three things you love (a film, a show, an
-            artist) and TasteBridge finds the {KIND_NOUN[huddle.kind]} the whole group will enjoy. It takes 30 seconds.
+            artist) and TableFair finds the {KIND_NOUN[huddle.kind]} the whole group will enjoy. It takes 30 seconds.
           </p>
           <button
             onClick={() => {

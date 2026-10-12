@@ -1,11 +1,11 @@
 ## In 30 seconds
-**Try it:** [tastebridge-brown.vercel.app](https://tastebridge-brown.vercel.app). Press "Demo: three generations, one lunch" (no account) and watch the agent work live. **Watch:** the narrated walkthrough on this page (2 min 14 s). **Code:** [github.com/trungpro5398/tastebridge](https://github.com/trungpro5398/tastebridge) (MIT).
+**Try it:** [tablefair.vercel.app](https://tablefair.vercel.app). Press "Demo: three generations, one lunch" (no account) and watch the agent work live. **Watch:** the narrated walkthrough on this page (2 min 14 s). **Code:** [github.com/trungpro5398/tablefair](https://github.com/trungpro5398/tablefair) (MIT).
 
-**The problem.** Couples spend about 17 minutes deciding where dinner comes from, and viewers browse about 12 minutes before finding something to watch ([sources](https://github.com/trungpro5398/tastebridge/blob/main/docs/MARKET.md)). Group apps settle it by swiping or voting. When you average everyone's taste, the person who would hate the choice disappears into the average.
+**The problem.** Couples spend about 17 minutes deciding where dinner comes from, and viewers browse about 12 minutes before finding something to watch ([sources](https://github.com/trungpro5398/tablefair/blob/main/docs/MARKET.md)). Group apps settle it by swiping or voting. When you average everyone's taste, the person who would hate the choice disappears into the average.
 
-**What TasteBridge does.** Everyone adds three favourite films, shows or artists. A Claude agent asks Qloo's taste graph how much each person will like each restaurant or film, then picks the option that **leaves nobody behind**, and shows its working.
+**What TableFair does.** Everyone adds three favourite films, shows or artists. A Claude agent asks Qloo's taste graph how much each person will like each restaurant or film, then picks the option that **leaves nobody behind**, and shows its working.
 
-**One real run** ([live result](https://tastebridge-brown.vercel.app/h/x7jg7f4q)). A Vietnamese-Australian family in Melbourne plans Sunday lunch at 12:30. Grandma likes it calm. A simple average picks Alimentari, where Grandma Lan's match is **50%** (her 8th of 15 options). TasteBridge picks **ima Asa Yoru**, "open until 3 pm": Grandma Lan **68%**, Minh 65%, Linh 69%. Nobody with a clear preference drops below 65%.
+**One real run** ([live result](https://tablefair.vercel.app/h/x7jg7f4q)). A Vietnamese-Australian family in Melbourne plans Sunday lunch at 12:30. Grandma likes it calm. A simple average picks Alimentari, where Grandma Lan's match is **50%** (her 8th of 15 options). TableFair picks **ima Asa Yoru**, "open until 3 pm": Grandma Lan **68%**, Minh 65%, Linh 69%. Nobody with a clear preference drops below 65%.
 
 **Evidence.** On 120 random groups using live Qloo data, the fair pick differs from the simple average in **40%** of groups. Where they differ, the least-matched person moves up **14 percentile points**, and the group average drops by 7.
 
@@ -15,7 +15,7 @@
 | **Technological implementation** | Four Qloo endpoints doing five jobs (below). A Claude tool-use agent with five tools, with the hard rules enforced in code. An MCP server and a rules-only REST API. 64 unit tests and a reproducible evaluation script. Every request is listed in the app's "exact Qloo requests" panel. |
 | **Design** | One click to a live result. The agent's steps stream in plain English. The result opens with the average-vs-fair chart. You can talk back to re-plan. Share link and QR code; mobile and dark mode. Lighthouse accessibility scores 100. |
 | **Potential impact** | Families, friends and team outings, with the three-generation family as the core case. Picks respect opening hours, dietary needs, children and time, so the group can actually go. Booking platforms can use the API and AI assistants can use the MCP server. A live `/impact` page counts real groups only. |
-| **Quality of the idea** | Qloo usually recommends to one person. TasteBridge uses it to measure *how much each person in a group cares*, and protects them. Cross-domain taste becomes a fairness signal, with private vetoes and fairness that carries over to the next outing. |
+| **Quality of the idea** | Qloo usually recommends to one person. TableFair uses it to measure *how much each person in a group cares*, and protects them. Cross-domain taste becomes a fairness signal, with private vetoes and fairness that carries over to the next outing. |
 
 ## Inspiration
 "Where should we eat?" can take a group twenty minutes, and the quietest person's taste usually loses. Recommenders are built for one person. My PhD research is on explainable AI and user trust, so I wanted a group recommender that is **fair by design** and **shows its working**.
@@ -55,14 +55,14 @@ Member names never go to Qloo, and the key stays on the server.
 `scripts/evaluate.mts` runs random groups of 3–5 people through the same pipeline on **live Qloo data** (rules mode, no LLM). Across **120 groups** (half dinner, half movie):
 - The fair pick differed from the highest-average pick in **40%** of groups.
 - Where they differed, the least-matched person with a preference gained **+14.1 percentile points**, while the group average fell by 6.6.
-- **37% of people were "flexible tonight"**: their scores barely differed across options. TasteBridge shrinks those scores toward neutral instead of "protecting" noise.
+- **37% of people were "flexible tonight"**: their scores barely differed across options. TableFair shrinks those scores toward neutral instead of "protecting" noise.
 
-Method and caveats are in [docs/EVALUATION.md](https://github.com/trungpro5398/tastebridge/blob/main/docs/EVALUATION.md). Real groups feed the live [Impact page](https://tastebridge-brown.vercel.app/impact) through three one-tap questions after each decision. Demo runs are excluded.
+Method and caveats are in [docs/EVALUATION.md](https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md). Real groups feed the live [Impact page](https://tablefair.vercel.app/impact) through three one-tap questions after each decision. Demo runs are excluded.
 
 ## More recorded runs
-- **Talk back** ([result](https://tastebridge-brown.vercel.app/h/i2r4eqpk)): "No Italian please, and somewhere quieter." Claude looked up Qloo's *Italian* and *Quiet* tags and rebuilt the shortlist. When nothing was tagged calm, it said so plainly and named the closest calm option.
-- **Private "not tonight"** ([result](https://tastebridge-brown.vercel.app/h/djkxuqt5)): "no Sushi" removed Kawa Sake Sushi Boat. Nobody can see who asked.
-- **Fairness that carries over** ([result](https://tastebridge-brown.vercel.app/h/ny5qvyh9)): Grandma Lan gave way at 57% earlier and carries a 4-point credit into the next outing.
+- **Talk back** ([result](https://tablefair.vercel.app/h/i2r4eqpk)): "No Italian please, and somewhere quieter." Claude looked up Qloo's *Italian* and *Quiet* tags and rebuilt the shortlist. When nothing was tagged calm, it said so plainly and named the closest calm option.
+- **Private "not tonight"** ([result](https://tablefair.vercel.app/h/djkxuqt5)): "no Sushi" removed Kawa Sake Sushi Boat. Nobody can see who asked.
+- **Fairness that carries over** ([result](https://tablefair.vercel.app/h/ny5qvyh9)): Grandma Lan gave way at 57% earlier and carries a 4-point credit into the next outing.
 - **Opening hours:** without a time, 4 of the top 5 fair options for a Monday 7 pm dinner were closed. With the time set, they are skipped.
 
 ## Challenges we ran into
@@ -89,8 +89,8 @@ Friends, couples and families for free; team dinners where inclusion matters; AI
 
 ## Run it yourself
 ```bash
-git clone https://github.com/trungpro5398/tastebridge && cd tastebridge
+git clone https://github.com/trungpro5398/tablefair && cd tablefair
 npm install && cp .env.local.example .env.local   # keys optional
 npm run dev                                       # http://localhost:3000
 ```
-With no keys it runs offline on a clearly labelled fictional catalogue. Add `QLOO_API_KEY` for live Qloo data, `ANTHROPIC_API_KEY` for the agent, and Supabase variables for persistence. Full details are in the [README](https://github.com/trungpro5398/tastebridge#readme).
+With no keys it runs offline on a clearly labelled fictional catalogue. Add `QLOO_API_KEY` for live Qloo data, `ANTHROPIC_API_KEY` for the agent, and Supabase variables for persistence. Full details are in the [README](https://github.com/trungpro5398/tablefair#readme).

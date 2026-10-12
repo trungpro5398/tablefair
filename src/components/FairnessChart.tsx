@@ -36,7 +36,7 @@ export default function FairnessChart({ decision }: { decision: Decision }) {
       <figcaption>
         <h3 className="font-display text-lg font-semibold">Every option, at a glance</h3>
         <p className="text-sm text-muted">
-          Right means a higher group average. Up means the least-matched person with a preference is better off. TasteBridge picks the
+          Right means a higher group average. Up means the least-matched person with a preference is better off. TableFair picks the
           highest dot{differs ? "; a simple average picks the one furthest right" : ""}.
         </p>
       </figcaption>

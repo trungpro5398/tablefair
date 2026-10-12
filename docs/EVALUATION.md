@@ -1,6 +1,6 @@
 # Evaluation: does fair picking actually protect anyone?
 
-**Question.** When a group decides by the option with the highest average match, how often does that leave one person badly served? And what does TasteBridge's fair pick change?
+**Question.** When a group decides by the option with the highest average match, how often does that leave one person badly served? And what does TableFair's fair pick change?
 
 ## Method (10 October 2026, live Qloo hackathon API)
 

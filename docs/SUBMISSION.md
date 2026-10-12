@@ -7,8 +7,8 @@ The project description submitted on Devpost is [docs/STORY.md](STORY.md).
 | Requirement (from qloo.devpost.com) | Status | Evidence |
 |---|---|---|
 | Working software that integrates the Qloo API and functions as an agentic tool / is built with an agent framework | ✅ | Claude tool-runner agent with 5 Qloo-backed tools (`src/lib/agent.ts`); live Qloo hackathon API in production |
-| Link to a functional demo that judges can try end to end | ✅ | https://tastebridge-brown.vercel.app (two one-click demos, no account; the agent starts on arrival); recorded showcase runs linked from STORY.md |
-| Public code repository with source, assets and run instructions | ✅ | https://github.com/trungpro5398/tastebridge; README "Run locally" works with no keys (offline catalogue) |
+| Link to a functional demo that judges can try end to end | ✅ | https://tablefair.vercel.app (two one-click demos, no account; the agent starts on arrival); recorded showcase runs linked from STORY.md |
+| Public code repository with source, assets and run instructions | ✅ | https://github.com/trungpro5398/tablefair; README "Run locally" works with no keys (offline catalogue) |
 | Text description of what it does and what makes it Qloo-powered | ✅ | docs/STORY.md |
 | Externally hosted, fully published (not local / private) | ✅ | Vercel production + Supabase; no deployment protection on the production URL |
 | Open-source license visible in the repo's About section | ✅ | MIT, detected by GitHub |

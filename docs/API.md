@@ -1,11 +1,11 @@
-# TasteBridge API (preview)
+# TableFair API (preview)
 
 Fair group picks as a service, for booking, ticketing, travel and team-event platforms. It is deterministic: Qloo Insights plus the same maximin ranking the app uses, with no LLM, so it is fast and cheap. Rate limited to 20 requests per hour per IP during the hackathon.
 
 ## `POST /api/v1/fair-pick`
 
 ```bash
-curl -X POST https://tastebridge-brown.vercel.app/api/v1/fair-pick \
+curl -X POST https://tablefair.vercel.app/api/v1/fair-pick \
   -H 'content-type: application/json' \
   -d '{
     "kind": "place",
@@ -47,17 +47,18 @@ Each option in the response also carries, when Qloo has them: `open_until` and `
   },
   "runner_ups": ["..."],
   "simple_average_pick": { "name": "Archie's All Day", "lowest_match": 0.544 },
+  "most_popular_without_taste_data": { "name": "...", "lowest_match": 0.31 },
   "compatibility": { "score": 0.09 },
   "provenance": { "qloo": "live", "calls": ["7 requests: 2 x /search, 5 x /v2/insights"] },
   "note": "Matches are within-shortlist percentiles of Qloo audience-level affinities, not predictions about individuals."
 }
 ```
 
-Member names never leave TasteBridge; only entity ids go to Qloo.
+Member names never leave TableFair; only entity ids go to Qloo.
 
 ## MCP server: `POST /api/mcp`
 
-The same capability for AI assistants, over the Model Context Protocol (Streamable HTTP, stateless, JSON responses, no auth). In Claude: **Settings → Connectors → Add custom connector**, URL `https://tastebridge-brown.vercel.app/api/mcp`.
+The same capability for AI assistants, over the Model Context Protocol (Streamable HTTP, stateless, JSON responses, no auth). In Claude: **Settings → Connectors → Add custom connector**, URL `https://tablefair.vercel.app/api/mcp`.
 
 | Tool | What it does |
 |---|---|
@@ -66,7 +67,7 @@ The same capability for AI assistants, over the Model Context Protocol (Streamab
 | `get_huddle` | Who has joined so far and, once the group has decided, the pick, per-person matches and the trade-off. |
 
 ```bash
-curl -X POST https://tastebridge-brown.vercel.app/api/mcp -H 'content-type: application/json' \
+curl -X POST https://tablefair.vercel.app/api/mcp -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"fair_pick","arguments":{
         "kind":"movie","kids":true,"max_minutes":105,
         "members":[{"name":"Ana","favourites":["Frozen"]},{"name":"Ben","favourites":["Bluey"]},{"name":"Cam","favourites":["John Wick"]}]}}}'

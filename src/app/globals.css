@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* TasteBridge: aubergine + saffron on porcelain. Each member also gets their own colour (lib/members.ts). */
+/* TableFair: aubergine + saffron on porcelain. Each member also gets their own colour (lib/members.ts). */
 :root {
   --background: #f7f7fa;
   --foreground: #221a2e;

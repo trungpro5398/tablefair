@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getHuddle } from "@/lib/store";
 
-export const alt = "A TasteBridge huddle";
+export const alt = "A TableFair huddle";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -42,7 +42,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           >
             ⌒
           </div>
-          TasteBridge
+          TableFair
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div style={{ fontSize: 36, color: "#5b2a86" }}>{huddle?.title ?? "Group huddle"}</div>

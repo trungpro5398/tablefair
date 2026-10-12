@@ -57,6 +57,45 @@ function broughtBy(names?: string[]) {
 }
 
 /** One bar value (0–100) per person, in the fair pick's member order. */
+/** The "without Qloo taste" baseline: the most popular option that fits the must-haves, scored for each person. */
+function PopularPick({ pop, top, color }: { pop: RankedCandidate; top: RankedCandidate; color: (id: string) => string }) {
+  const noun = top.entity.type === "urn:entity:place" ? "place" : top.entity.type === "urn:entity:movie" ? "film" : "show";
+  if (pop.entity.entity_id === top.entity.entity_id)
+    return (
+      <p className="mt-4 rounded-2xl border border-dashed border-line px-4 py-3 text-sm text-muted">
+        Without taste data: the most popular {noun} that fits your must-haves is also tonight&apos;s fair pick.
+      </p>
+    );
+  const popLow = lowest(pop.scores);
+  return (
+    <div className="mt-4 rounded-2xl border border-dashed border-line px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">Without taste data</p>
+      <p className="mt-1 text-sm">
+        The most popular {noun} that fits your must-haves is <b>{pop.entity.name}</b>, the kind of place a listings app shows
+        first.
+        {popLow && (
+          <>
+            {" "}
+            {popLow.member_name}&apos;s match there is {pct(popLow.satisfaction)}, against {pct(top.scores.find((x) => x.member_id === popLow.member_id)?.satisfaction ?? 0)}{" "}
+            at {top.entity.name}.
+          </>
+        )}
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={`Taste matches at ${pop.entity.name}`}>
+        {pop.scores.map((s) => (
+          <li
+            key={s.member_id}
+            className={`flex items-center gap-1 rounded-full bg-soft px-2 py-0.5 text-xs tabular-nums ${s.flexible ? "opacity-50" : ""} ${s.member_id === popLow?.member_id ? "font-semibold" : ""}`}
+          >
+            <span className="size-1.5 rounded-full" style={{ background: color(s.member_id) }} aria-hidden />
+            {s.member_name} {pct(s.satisfaction)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function barsOf(c: RankedCandidate) {
   return c.scores.map((s) => Math.round(s.satisfaction * 100));
 }
@@ -323,6 +362,7 @@ export default function Results({
   if (!top) return null;
 
   const maj = decision.majority;
+  const pop = decision.popular;
   const differs = !!maj && maj.entity.entity_id !== top.r.entity.entity_id;
   const low = lowest(top.r.scores);
   const majLow = maj ? lowest(maj.scores) : undefined;
@@ -417,7 +457,7 @@ export default function Results({
                 <CompareBars
                   options={[
                     { label: "A simple average picks", name: maj.entity.name, values: barsOf(maj), fair: false },
-                    { label: "TasteBridge picks", name: top.r.entity.name, values: barsOf(top.r), fair: true },
+                    { label: "TableFair picks", name: top.r.entity.name, values: barsOf(top.r), fair: true },
                   ]}
                   people={top.r.scores.map((s) => ({ name: s.member_name, color: color(s.member_id), flexible: s.flexible }))}
                   highlight={majLow ? top.r.scores.findIndex((s) => s.member_id === majLow.member_id) : undefined}
@@ -432,6 +472,7 @@ export default function Results({
               </div>
             )}
             {decision.tradeoff_note && <p className="mt-2 max-w-prose text-sm text-muted">{decision.tradeoff_note}</p>}
+            {pop && <PopularPick pop={pop} top={top.r} color={color} />}
           </div>
         )}
         <div className="border-t border-line p-3 sm:p-5">

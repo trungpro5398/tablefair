@@ -162,6 +162,8 @@ export type Decision = {
   ranked: RankedCandidate[];
   /** what plain majority/average voting would pick */
   majority: RankedCandidate | null;
+  /** the most popular option meeting the same must-haves, found with no taste data (what a listings app shows first) */
+  popular?: RankedCandidate | null;
   picks: Pick[];
   tradeoff_note: string;
   trace: { tool: string; summary: string }[];

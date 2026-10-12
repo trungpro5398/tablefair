@@ -5,7 +5,7 @@ This is an internal heuristic review, **not a user study**. We walked through th
 | Persona | What they do | What went wrong | Fix |
 |---|---|---|---|
 | A hackathon judge in New York | Starts a dinner huddle in "New York" with friends who like *Succession*, Beyoncé and *Dune* | The default location was Melbourne. The shortlist included a neighbourhood (Little Italy, a "market"), a shopping mall and a hotel. | The default city now comes from the browser time zone. Dinner shortlists exclude malls, markets and hotels (`filter.exclude.tags`) and drop drink-first venues by Qloo `primary_genre`. NYC now returns the Press Lounge, Battery Gardens and Katz's Delicatessen; LA returns In-N-Out, Catch and Nobu. |
-| A friend opening the shared link on a phone | Lands mid-conversation with no context | Nothing explained what TasteBridge is or what to do | A short invite banner plus an "Add my taste" button that opens and focuses the form |
+| A friend opening the shared link on a phone | Lands mid-conversation with no context | Nothing explained what TableFair is or what to do | A short invite banner plus an "Add my taste" button that opens and focuses the form |
 | The organiser after the result | Wants to send it to the group or tweak it | "Share" and "Adjust" sat below eight cards | The share, run-again and "Tell the agent" controls now sit directly under the pick. The agent drafts the group-chat message. |
 | Someone booking a table | Needs the venue's site | Only a Maps link | A "Website" button appears when Qloo has one |
 | A US viewer picking a movie | "Find where to watch" | The link went to JustWatch Australia | The JustWatch region follows the time zone (us, uk, au…) |
