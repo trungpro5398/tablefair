@@ -12,7 +12,7 @@ The project description submitted on Devpost is [docs/STORY.md](STORY.md).
 | Text description of what it does and what makes it Qloo-powered | ✅ | docs/STORY.md |
 | Externally hosted, fully published (not local / private) | ✅ | Vercel production + Supabase; no deployment protection on the production URL |
 | Open-source license visible in the repo's About section | ✅ | MIT, detected by GitHub |
-| Demo video | ✅ in repo | 134-second narrated walkthrough built from real runs on live Qloo data (production showcase run of 12 Oct, MCP call on production, local runs for the new plan options): docs/media/tastebridge-demo.mp4. Rebuild with `press/video/v3/build.py`. Devpost needs a YouTube/Vimeo link: upload it and paste the URL into "Video demo link". |
+| Demo video | ✅ in repo | 134-second narrated walkthrough built from real runs on live Qloo data (production showcase run of 12 Oct, MCP call on production, local runs for the new plan options): docs/media/tastebridge-demo.mp4. Devpost needs a YouTube/Vimeo link: upload it and paste the URL into "Video demo link". |
 
 Qloo kit guidance (`qloo-hackathon-kit/docs/SUBMISSION.md`, `SAFE_USE.md`):
 
