@@ -3,16 +3,19 @@
 
 **The problem.** Couples spend about 17 minutes deciding where dinner comes from, and viewers browse about 12 minutes before finding something to watch ([sources](https://github.com/trungpro5398/tablefair/blob/main/docs/MARKET.md)). Group apps settle it by swiping or voting. When you average everyone's taste, the person who would hate the choice disappears into the average.
 
-**What TableFair does.** Everyone adds three favourite films, shows or artists. A Claude agent asks Qloo's taste graph how much each person will like each restaurant or film, then picks the option that **leaves nobody behind**, and shows its working.
+**What TableFair does.** It is for groups that are hard to please together: three generations at one table, mixed diets and faiths, friends with nothing in common. Everyone adds three favourite films, shows or artists. A Claude agent asks Qloo's taste graph how much each person will like each restaurant or film, then picks the option that **leaves nobody behind**, and shows its working.
 
-**One real run** ([live result](https://tablefair.vercel.app/h/x7jg7f4q)). A Vietnamese-Australian family in Melbourne plans Sunday lunch at 12:30. Grandma likes it calm. A simple average picks Alimentari, where Grandma Lan's match is **50%** (her 8th of 15 options). TableFair picks **ima Asa Yoru**, "open until 3 pm": Grandma Lan **68%**, Minh 65%, Linh 69%. Nobody with a clear preference drops below 65%.
+**One real run** ([live result](https://tablefair.vercel.app/h/akc5fxtv)). A Vietnamese-Australian family in Melbourne plans Sunday lunch at 12:30. Grandma likes it calm.
+- **Without taste data**, the most popular place that fits is SANTUCCI's, where Minh's match is **43%**.
+- **A simple average** picks Alimentari, where Grandma Lan's match is **50%** (her 8th of 15 options).
+- **TableFair** picks **ima Asa Yoru**, "open until 3 pm": Grandma Lan **68%**, Minh 65%, Linh 69%. Nobody with a clear preference drops below 65%.
 
-**Evidence.** On 120 random groups using live Qloo data, the fair pick differs from the simple average in **40%** of groups. Where they differ, the least-matched person moves up **14 percentile points**, and the group average drops by 7.
+**Evidence.** On 120 random groups using live Qloo data, the most popular option that fits (no taste data) leaves someone with a clear preference **below 25% in half the groups**; the fair pick, in none. Against a simple average, the fair pick differs in **42%** of groups and lifts the least-matched person by **14 percentile points**, for a 7-point drop in the group average.
 
 ## How it meets the judging criteria
 | Criterion | Where to look |
 |---|---|
-| **Technological implementation** | Four Qloo endpoints doing five jobs (below). A Claude tool-use agent with five tools, with the hard rules enforced in code. An MCP server and a rules-only REST API. 64 unit tests and a reproducible evaluation script. Every request is listed in the app's "exact Qloo requests" panel. |
+| **Technological implementation** | Four Qloo endpoints doing five jobs (below), plus a no-taste-data baseline on every decision that shows what Qloo adds. A Claude tool-use agent with five tools, with the hard rules enforced in code. An MCP server and a rules-only REST API. 64 unit tests and a reproducible evaluation script. Every request is listed in the app's "exact Qloo requests" panel. |
 | **Design** | One click to a live result. The agent's steps stream in plain English. The result opens with the average-vs-fair chart. You can talk back to re-plan. Share link and QR code; mobile and dark mode. Lighthouse accessibility scores 100. |
 | **Potential impact** | Families, friends and team outings, with the three-generation family as the core case. Picks respect opening hours, dietary needs, children and time, so the group can actually go. Booking platforms can use the API and AI assistants can use the MCP server. A live `/impact` page counts real groups only. |
 | **Quality of the idea** | Qloo usually recommends to one person. TableFair uses it to measure *how much each person in a group cares*, and protects them. Cross-domain taste becomes a fairness signal, with private vetoes and fairness that carries over to the next outing. |
@@ -25,7 +28,7 @@
 2. Each friend adds up to three favourites from **any** domain: a film, an artist, a show or a book. No questionnaires.
 3. **Everyone's taste goes on the table.** The shortlist mixes each person's own top Qloo matches (labelled "Brought by Linh") with options that suit the group's combined taste. The agent then scores every option against each person's taste.
 4. It picks the option with the **best lowest match among people who have a preference tonight**. Each person sees their match, where the pick ranks for them ("4th of 15") and their own #1. People Qloo sees as indifferent are marked **flexible tonight**, so noise never decides the evening.
-5. It shows what a simple average would have picked, and who that choice would have left behind.
+5. It shows two alternatives, each scored for every person: what a simple average would have picked, and the most popular option that fits with **no taste data** (what a listings app shows first). The group sees exactly what Qloo's taste graph adds.
 6. **Private by design.** Anyone can quietly rule something out ("not sushi") or add a dietary need (vegetarian to halal and kosher). Each becomes a hard Qloo filter. The result says what was covered, never who asked.
 7. **Ready for the real evening.** Only places Qloo lists as open when you're going, with at least an hour to spare. Each pick shows "Open until 3 pm", the Qloo rating and Call, Maps or Netflix links.
 8. **Talk back** ("no Japanese, somewhere quieter") and the agent re-plans with Qloo. **Plan the next outing**: whoever gave way last time gets a small, capped credit in close calls.
@@ -39,9 +42,26 @@ Without Qloo there is no way to know how a fan of *Mad Max* and Daft Punk will f
   - first to build the shortlist: each person's own top matches plus the group's, with `filter.hours`, `filter.content_rating` and price filters;
   - then to re-score that same shortlist for each person, with `filter.results.entities` and `feature.explainability` (which of their favourites drove the match).
 - **`/v2/analysis/compare`**: where the two people who disagree most overlap and split.
+- **`/v2/insights` with no taste signal**: the most popular option that meets the same must-haves, scored for everyone as the "without Qloo taste" baseline.
 - **Entity properties** make the pick usable: opening hours, ratings and phone numbers for places; running time, age rating, IMDb and Netflix ids for films.
 
 Member names never go to Qloo, and the key stays on the server.
+
+### Request → result (the showcase run, redacted)
+Every result lists these calls in its "exact Qloo requests" panel. Entity ids are summarised there, as here.
+```text
+1. /v2/insights  filter.type=place  filter.location.query=Melbourne  filter.tags=restaurant
+                 filter.hours=sunday  filter.price_level.max=2  filter.exclude.tags=loud,noisy,bustling,…
+                 signal.interests.entities=<the group's 12 favourites>             → 50 candidates
+2. /v2/insights  same filters, no taste signal                                      → 30, most popular first
+3–6. /v2/insights  same filters, signal = <one person's 3 favourites> (×4)          → each person's own top matches
+     → 15 restaurants open at 12:30 Sunday with an hour to spare
+7–10. /v2/insights  filter.results.entities=<those 15>  signal=<one person's 3>  feature.explainability (×4)
+     → every option scored for every person, turned into within-person percentiles
+11. /v2/analysis/compare  a=<Grandma Lan's 3>  b=<Minh's 3>                         → shared: Drama, Complex, Atmospheric…
+Result: ima Asa Yoru (lowest match 65%) · average pick Alimentari (50%) · popular pick SANTUCCI's (43%)
+```
+What this does not establish: how any one person will feel. The matches are ranks among tonight's options, based on what fans of each person's favourites tend to like.
 
 ## How we built it
 - **Agent.** Claude runs through the Anthropic TypeScript SDK tool runner with five typed tools: `find_tags`, `group_candidates`, `score_for_members`, `compare_tastes` and `finalize`. It chooses filters, compares the two people who disagree most, and re-plans once if the protected person is in their bottom half. Each step is streamed live to the page.
@@ -53,8 +73,9 @@ Member names never go to Qloo, and the key stays on the server.
 
 ## Does fairness change anything? We measured it
 `scripts/evaluate.mts` runs random groups of 3–5 people through the same pipeline on **live Qloo data** (rules mode, no LLM). Across **120 groups** (half dinner, half movie):
-- The fair pick differed from the highest-average pick in **40%** of groups.
-- Where they differed, the least-matched person with a preference gained **+14.1 percentile points**, while the group average fell by 6.6.
+- **Without taste data**, the most popular option that fits left the least-matched person with a preference at **24%** on average, against **63%** with the fair pick. It left someone below 25% in **52%** of groups; the fair pick, in **0%**. It was worse for the group average too (38% vs 68%).
+- The fair pick differed from the highest-average pick in **42%** of groups.
+- Where they differed, the least-matched person with a preference gained **+13.5 percentile points**, while the group average fell by 6.8.
 - **37% of people were "flexible tonight"**: their scores barely differed across options. TableFair shrinks those scores toward neutral instead of "protecting" noise.
 
 Method and caveats are in [docs/EVALUATION.md](https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md). Real groups feed the live [Impact page](https://tablefair.vercel.app/impact) through three one-tap questions after each decision. Demo runs are excluded.

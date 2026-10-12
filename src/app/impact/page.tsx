@@ -78,11 +78,13 @@ export default function ImpactPage() {
             Method
           </a>
         </p>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Fair pick ≠ average" value="40%" note="48 of 120 groups" />
-          <Stat label="Lift for least-matched" value="+14.1" note="points, where they differ" />
-          <Stat label="Cost to group average" value="−6.6" note="points, where they differ" />
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Stat label="Fair pick ≠ average" value="42%" note="50 of 120 groups" />
+          <Stat label="Lift for least-matched" value="+13.5" note="points, where they differ" />
+          <Stat label="Cost to group average" value="−6.8" note="points, where they differ" />
           <Stat label="Flexible tonight" value="37%" note="of people: Qloo saw little difference for them" />
+          <Stat label="Without taste data" value="52%" note="of groups leave someone below 25% (fair pick: 0%)" />
+          <Stat label="Least-matched, no taste data" value="24%" note="vs 63% with the fair pick" />
         </div>
       </section>
 
