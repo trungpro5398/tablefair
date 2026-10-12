@@ -22,11 +22,11 @@ export default function CompareBars({
     <div>
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {options.map((o) => (
-          <div key={o.label} className={`rounded-2xl p-3 ${o.fair ? "bg-accent/15" : "bg-soft"}`}>
+          <div key={o.label} className={`flex flex-col rounded-2xl p-3 ${o.fair ? "bg-accent/15" : "bg-soft"}`}>
             <p className="text-xs text-muted">{o.label}</p>
             <p className="mt-0.5 min-h-[2.5rem] text-sm font-semibold leading-tight">{o.name}</p>
             <div
-              className="mt-3 flex h-28 items-end gap-2"
+              className="mt-auto flex h-28 items-end gap-2 pt-3"
               role="img"
               aria-label={people.map((p, i) => `${p.name} ${o.values[i]}%${p.flexible ? " (flexible tonight)" : ""}`).join(", ")}
             >
@@ -48,7 +48,7 @@ export default function CompareBars({
             </div>
             <div className="mt-1.5 flex gap-2">
               {people.map((p) => (
-                <span key={p.name} className="flex flex-1 items-center justify-center gap-1 truncate text-[11px] font-semibold">
+                <span key={p.name} className="flex min-w-0 flex-1 items-center justify-center gap-0.5 whitespace-nowrap text-[11px] font-semibold">
                   <span className="size-1.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
                   {initials(p.name)}
                 </span>
