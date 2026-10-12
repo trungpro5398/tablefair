@@ -9,7 +9,7 @@ import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import * as z from "zod";
 import { DecisionSession, decideWithRules, refinementsByRules, type OnStep, type RefineContext } from "./decide";
 import { askClaudeAlone } from "./llm-only";
-import { outsideQlooLog } from "./qloo";
+import { QlooError, outsideQlooLog } from "./qloo";
 import type { Decision, Huddle } from "./types";
 
 // Sonnet keeps per-decision cost low; override with ANTHROPIC_MODEL.
@@ -85,13 +85,26 @@ export async function decide(
   s.log("agent", "Claude is planning which Qloo lookups to make");
   // While Claude plans, the same pipeline runs by rules so the group sees the numbers in seconds.
   // Its Qloo responses land in the shared cache, so Claude's first shortlist is usually instant.
+  let previewDecision: Decision | undefined;
   const preview = opts.onPreview
     ? outsideQlooLog(() => decideWithRules(huddle, undefined, undefined, ctx))
         .then((d) => {
-          if (d.ranked.length && !s.picks?.length) opts.onPreview!(d);
+          if (!d.ranked.length) return;
+          previewDecision = d;
+          if (!s.picks?.length) opts.onPreview!(d);
         })
         .catch(() => {})
     : undefined;
+  // If Qloo gets busy while Claude works, the group still gets the numbers they've already seen.
+  const busyFallback = async (err: unknown) => {
+    await preview;
+    if (!(err instanceof QlooError) || !previewDecision) throw err;
+    console.error("[agent] Qloo busy mid-run; returning the rules result", err.message);
+    return {
+      ...previewDecision,
+      trace: [...previewDecision.trace, { tool: "agent", summary: "Qloo got busy while Claude was checking, so this is the result scored by rules" }],
+    };
+  };
   const json = (v: unknown) => JSON.stringify(v);
 
   const tools = [
@@ -247,16 +260,20 @@ export async function decide(
       console.error("[agent] Claude API error", err.status, err.message);
       s.log("agent", `Claude unavailable (${err.status ?? "network"}), so simple rules wrote the explanations`);
     } else {
-      throw err;
+      return busyFallback(err);
     }
   }
 
   await preview;
   // The agent may have failed before scoring; make sure the numbers exist.
-  if (!s.ranked.length) {
-    if (!s.shortlist.length)
-      await s.generateCandidates(opts.refinements?.length ? await refinementsByRules(s, opts.refinements) : {});
-    await s.scoreMembers();
+  try {
+    if (!s.ranked.length) {
+      if (!s.shortlist.length)
+        await s.generateCandidates(opts.refinements?.length ? await refinementsByRules(s, opts.refinements) : {});
+      await s.scoreMembers();
+    }
+  } catch (err) {
+    return busyFallback(err);
   }
   return s.toDecision(s.picks?.length ? "claude" : "rules");
 }

@@ -89,7 +89,8 @@ const cache = (g.__qlooCache ??= new Map());
 // ---------- rate limiting: the hackathon key is rate limited, so keep requests few and spaced ----------
 const MAX_CONCURRENT = Number(process.env.QLOO_MAX_CONCURRENT ?? 2);
 const MIN_SPACING_MS = Number(process.env.QLOO_MIN_SPACING_MS ?? 120);
-const RETRIES_429 = 3;
+// a burst of judges can hit the hackathon key's limit at once; back off for up to ~20 s before giving up
+const RETRIES_429 = 5;
 const lim = ((globalThis as unknown as { __qlooLim?: { active: number; last: number; queue: (() => void)[] } }).__qlooLim ??=
   { active: 0, last: 0, queue: [] });
 
