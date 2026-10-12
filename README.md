@@ -106,7 +106,9 @@ npm run test:smoke       # creates disposable local huddles in all three categor
 npm run check:setup      # reports missing configuration without printing secrets
 ```
 
-**Live verification (10 Oct 2026, hackathon API + Claude Sonnet 5.5, production, [result](https://tastebridge-brown.vercel.app/h/i8iiiqdb)):** the three-generations demo ("Grandma likes it calm. Under $$$.") put 21 restaurants on the table, 9 of them brought by one person's own taste. The fair pick was **The Moat** (Grandma Lan 57%, Minh 66%, Linh 66%, Mai 57%); a simple average picks Kawa Sake Sushi Boat, where Grandma Lan drops to 37%. Claude compared the two people who disagree most ("Grandma Lan rates Ichigo at 83% while Linh is at 23%") and described The Moat only with its Qloo tags (Intimate, Quiet). 10 Qloo calls, $0.08 of Claude.
+**Live verification (12 Oct 2026, production, [result](https://tastebridge-brown.vercel.app/h/x7jg7f4q)):** the same demo, now for Sunday at 12:30 pm, only considers places open then (3 that close too soon were skipped). The fair pick is **ima Asa Yoru**, "open until 3 pm": Grandma Lan 68%, Minh 65%, Linh 69%, with Mai flexible. A simple average picks Alimentari, where Grandma Lan drops to 50%, her 8th of 15. That run made 10 Qloo calls and cost $0.09 of Claude.
+
+**Earlier run (10 Oct 2026, before the opening-hours check, [result](https://tastebridge-brown.vercel.app/h/i8iiiqdb)):** the three-generations demo ("Grandma likes it calm. Under $$$.") put 21 restaurants on the table, 9 of them brought by one person's own taste. The fair pick was **The Moat** (Grandma Lan 57%, Minh 66%, Linh 66%, Mai 57%); a simple average picks Kawa Sake Sushi Boat, where Grandma Lan drops to 37%. Claude compared the two people who disagree most ("Grandma Lan rates Ichigo at 83% while Linh is at 23%") and described The Moat only with its Qloo tags (Intimate, Quiet). 10 Qloo calls, $0.08 of Claude.
 
 In offline mode (no keys), rules pick The Green Fig: Josh's match is 46% there, versus 39% at the average pick.
 

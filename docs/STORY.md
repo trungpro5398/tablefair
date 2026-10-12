@@ -3,7 +3,7 @@
 
 **The problem.** Couples spend about 17 minutes deciding where dinner comes from, and viewers browse about 12 minutes before finding something to watch (sources in [docs/MARKET.md](https://github.com/trungpro5398/tastebridge/blob/main/docs/MARKET.md)). Group apps settle it by swiping or voting. When a group averages everyone's taste, the person who hates the choice disappears into the average.
 
-**One real run** ([live result](https://tastebridge-brown.vercel.app/h/i8iiiqdb)). A Vietnamese-Australian family in Melbourne adds favourite films, music and shows; Grandma likes it calm. A simple average picks Kawa Sake Sushi Boat, where Grandma Lan's match is **37%** (her 15th of 21 options). TasteBridge picks **The Moat**: Grandma Lan 57%, Minh 66%, Linh 66%, and nobody with a clear preference lower.
+**One real run** ([live result](https://tastebridge-brown.vercel.app/h/x7jg7f4q)). A Vietnamese-Australian family in Melbourne plans Sunday lunch at 12:30 and adds favourite films, music and shows. Grandma likes it calm. A simple average picks Alimentari, where Grandma Lan's match is **50%** (her 8th of 15 options). TasteBridge picks **ima Asa Yoru**, "open until 3 pm": Grandma Lan 68%, Minh 65%, Linh 69%, and nobody with a clear preference lower.
 
 **What is new here**
 - **Taste from any domain, no questionnaires.** Qloo maps Khánh Ly, *Heat* or *The Great British Baking Show* to restaurants and films.
@@ -53,16 +53,18 @@ Without Qloo there is no way to know how a fan of *Mad Max* and Daft Punk will f
 Every result has a **Qloo evidence** panel listing the exact requests behind it: endpoint, filters, tag choices and result counts. Entity-id lists are summarised there, member names never go to Qloo, and the key stays on the server.
 
 ## A real run
-**Real run (production, 10 Oct 2026): Sunday lunch, three generations** ([live result](https://tastebridge-brown.vercel.app/h/i8iiiqdb))
-- A Vietnamese-Australian family in Melbourne. Grandma Lan (Khánh Ly, Trịnh Công Sơn, *The Scent of Green Papaya*), Minh (*Anthony Bourdain: Parts Unknown*, The Rolling Stones, *Heat*), Linh (*The Great British Baking Show*, Céline Dion, *Pride and Prejudice*) and their teenager Mai (*Spider-Man: Into the Spider-Verse*, BTS, *Stranger Things*).
+**Real run (production, 12 Oct 2026): Sunday lunch, three generations** ([live result](https://tastebridge-brown.vercel.app/h/x7jg7f4q))
+- A Vietnamese-Australian family in Melbourne, going on Sunday at 12:30 pm. Grandma Lan (Khánh Ly, Trịnh Công Sơn, *The Scent of Green Papaya*), Minh (*Anthony Bourdain: Parts Unknown*, The Rolling Stones, *Heat*), Linh (*The Great British Baking Show*, Céline Dion, *Pride and Prejudice*) and their teenager Mai (*Spider-Man: Into the Spider-Verse*, BTS, *Stranger Things*).
 - Must-have: "Grandma likes it calm. Under $$$." The code turns that into hard rules: up to $$, and no venue Qloo tags loud, noisy, bustling or lively.
-- 21 Melbourne restaurants went on the table; 9 were brought by one person's own taste.
-- Qloo sees Mai as flexible tonight: her scores barely differ between these options.
-- A simple average picks Kawa Sake Sushi Boat, where **Grandma Lan's match is 37%** (her 15th of 21 options).
-- TasteBridge picks **The Moat**: Grandma Lan 57%, Minh 66%, Linh 66%, Mai 57%.
-- Claude compared the two people who disagree most: "Grandma Lan rates Ichigo at 83% while Linh is at 23%." It described The Moat only with its Qloo tags ("tagged Intimate and Quiet").
-- 10 Qloo calls; Claude cost $0.08.
-- **Talking back** ([live result](https://tastebridge-brown.vercel.app/h/i2r4eqpk)): the group asked "No Italian please, and somewhere quieter". Claude looked up Qloo's *Italian* and *Quiet* tags, excluded Italian, leaned quiet, rebuilt the shortlist (18 restaurants) and rescored everyone. The Moat was replaced by **Roule Galette**, with nobody with a clear preference below 59%. Because no option is tagged calm, the app says so and names the calmest close option: The Soup Place (Cozy), lowest match 52%. 12 Qloo calls, $0.09.
+- Only places Qloo lists as open on Sunday with an hour to spare count: 3 that close too soon were skipped. 15 Melbourne restaurants went on the table, and 6 of them were brought by one person's own taste.
+- Qloo sees Mai as flexible: her scores barely differ between these options.
+- A simple average picks Alimentari, where **Grandma Lan's match is 50%** (her 8th of 15 options).
+- TasteBridge picks **ima Asa Yoru** in Brunswick, open until 3 pm: Grandma Lan 68%, Minh 65%, Linh 69%.
+- Claude compared the two people who split most, Grandma Lan and Minh, with Qloo Analysis Compare (shared: *Drama, Atmospheric, Passionate*).
+- No option carries a calm-type Qloo tag, so the result says so. It names the closest calm option, The Soup Place (tagged Cozy). The drafted group message reads: "Sunday lunch pick: ima Asa Yoru in Brunswick, open until 3 pm… if that matters most, The Soup Place (tagged Cozy, open until 6 pm) is the backup."
+- 10 Qloo calls; Claude cost $0.09.
+- An earlier run on 10 Oct, before the opening-hours check ([result](https://tastebridge-brown.vercel.app/h/i8iiiqdb)), had a 37% → 57% lift for Grandma Lan at The Moat.
+- **Talking back** (on the 10 Oct run, [live result](https://tastebridge-brown.vercel.app/h/i2r4eqpk)): the group asked "No Italian please, and somewhere quieter". Claude looked up Qloo's *Italian* and *Quiet* tags, excluded Italian, leaned quiet, rebuilt the shortlist (18 restaurants) and rescored everyone. The Moat was replaced by **Roule Galette**, with nobody with a clear preference below 59%. Because no option is tagged calm, the app says so and names the calmest close option: The Soup Place (Cozy), lowest match 52%. 12 Qloo calls, $0.09.
 
 **Why opening hours matter** (live Qloo data, rules mode, 12 Oct 2026). Three friends (*Spirited Away*, *John Wick*, *The Bear*) choose dinner in Melbourne. Without a time, **4 of the top 5 fair options were closed at 7 pm on a Monday**, among them Vue de monde and Pincho Disco. With "Monday, 7 pm", 9 options that were closed or closing soon are skipped. The pick becomes Baby Pizza, "Open until 9:30 pm". On Friday at 9:30 pm the same group gets Pincho Disco, open until 11:30 pm.
 

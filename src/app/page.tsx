@@ -3,11 +3,13 @@ import { memberColor } from "@/lib/members";
 import CreateHuddle from "./CreateHuddle";
 import DemoButton from "./DemoButton";
 
-// recorded production run, 10 Oct 2026 (/h/i8iiiqdb)
+// recorded production run, 12 Oct 2026 (/h/x7jg7f4q): Sunday 12:30 pm, open venues only
 const PEOPLE = ["Grandma Lan", "Minh", "Linh", "Mai"];
+/** Qloo saw little difference between options for Mai in this run */
+const FLEXIBLE = ["Mai"];
 const example = [
-  { label: "A simple average picks", name: "Kawa Sake Sushi Boat", v: [37, 68, 72, 74], fair: false },
-  { label: "TasteBridge picks", name: "The Moat", v: [57, 66, 66, 57], fair: true },
+  { label: "A simple average picks", name: "Alimentari", v: [50, 76, 76, 43], fair: false },
+  { label: "TasteBridge picks", name: "ima Asa Yoru", v: [68, 65, 69, 30], fair: true },
 ];
 
 const steps = [
@@ -69,12 +71,13 @@ export default function Home() {
           <div className="mt-5">
             <CompareBars
               options={example.map((o) => ({ label: o.label, name: o.name, values: o.v, fair: o.fair }))}
-              people={PEOPLE.map((name, i) => ({ name, color: memberColor(i) }))}
+              people={PEOPLE.map((name, i) => ({ name, color: memberColor(i), flexible: FLEXIBLE.includes(name) }))}
               highlight={0}
             />
           </div>
           <p className="mt-4 text-sm text-muted">
-            The average leaves Grandma Lan at 37%. The fair pick lifts her to 57%, and nobody ends up lower than that.
+            The average leaves Grandma Lan at 50%, her 8th of 15 options. The fair pick lifts her to 68%, and nobody with a clear
+            preference ends up below 65%. Both places are open when the family is going.
           </p>
         </figure>
       </section>

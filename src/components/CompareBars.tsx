@@ -5,6 +5,7 @@ export type CompareOption = { label: string; name: string; values: number[]; fai
 /**
  * The product in one picture: what a simple average picks next to the fair pick, one bar per person.
  * The person the average leaves behind keeps full colour; everyone else is muted on the average side.
+ * People who are flexible tonight are drawn faded on both sides: they don't decide the pick.
  */
 export default function CompareBars({
   options,
@@ -12,39 +13,57 @@ export default function CompareBars({
   highlight,
 }: {
   options: CompareOption[];
-  people: { name: string; color: string }[];
+  people: { name: string; color: string; flexible?: boolean }[];
   /** index of the person the simple average leaves behind */
   highlight?: number;
 }) {
+  const flexible = people.filter((p) => p.flexible).map((p) => p.name);
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-      {options.map((o) => (
-        <div key={o.label} className={`rounded-2xl p-3 ${o.fair ? "bg-accent/15" : "bg-soft"}`}>
-          <p className="text-xs text-muted">{o.label}</p>
-          <p className="mt-0.5 min-h-[2.5rem] text-sm font-semibold leading-tight">{o.name}</p>
-          <div className="mt-3 flex h-28 items-end gap-2" role="img" aria-label={people.map((p, i) => `${p.name} ${o.values[i]}%`).join(", ")}>
-            {o.values.map((v, i) => {
-              const muted = !o.fair && highlight !== undefined && i !== highlight;
-              return (
-                <div key={people[i].name} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
-                  <span className={`text-[11px] tabular-nums ${!o.fair && i === highlight ? "font-semibold text-foreground" : "text-muted"}`}>
-                    {v}
-                  </span>
-                  <div className="w-full rounded-t-md" style={{ height: `${Math.max(v, 3)}%`, background: people[i].color, opacity: muted ? 0.45 : 1 }} />
-                </div>
-              );
-            })}
+    <div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {options.map((o) => (
+          <div key={o.label} className={`rounded-2xl p-3 ${o.fair ? "bg-accent/15" : "bg-soft"}`}>
+            <p className="text-xs text-muted">{o.label}</p>
+            <p className="mt-0.5 min-h-[2.5rem] text-sm font-semibold leading-tight">{o.name}</p>
+            <div
+              className="mt-3 flex h-28 items-end gap-2"
+              role="img"
+              aria-label={people.map((p, i) => `${p.name} ${o.values[i]}%${p.flexible ? " (flexible tonight)" : ""}`).join(", ")}
+            >
+              {o.values.map((v, i) => {
+                const flex = !!people[i].flexible;
+                const muted = !o.fair && highlight !== undefined && i !== highlight;
+                return (
+                  <div key={people[i].name} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+                    <span className={`text-[11px] tabular-nums ${!o.fair && i === highlight ? "font-semibold text-foreground" : "text-muted"}`}>
+                      {v}
+                    </span>
+                    <div
+                      className={`w-full rounded-t-md ${flex ? "border border-dashed border-muted" : ""}`}
+                      style={{ height: `${Math.max(v, 3)}%`, background: people[i].color, opacity: flex ? 0.3 : muted ? 0.45 : 1 }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-1.5 flex gap-2">
+              {people.map((p) => (
+                <span key={p.name} className="flex flex-1 items-center justify-center gap-1 truncate text-[11px] font-semibold">
+                  <span className="size-1.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
+                  {initials(p.name)}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="mt-1.5 flex gap-2">
-            {people.map((p) => (
-              <span key={p.name} className="flex flex-1 items-center justify-center gap-1 truncate text-[11px] font-semibold">
-                <span className="size-1.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
-                {initials(p.name)}
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      {flexible.length > 0 && (
+        <p className="mt-2 text-xs text-muted">
+          Faded bars: {flexible.join(" and ")} {flexible.length === 1 ? "is" : "are"} flexible tonight. Qloo sees little
+          difference between these options for {flexible.length === 1 ? "this person" : "them"}, so the fair pick protects
+          the others first.
+        </p>
+      )}
     </div>
   );
 }

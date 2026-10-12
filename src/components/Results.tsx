@@ -419,7 +419,7 @@ export default function Results({
                     { label: "A simple average picks", name: maj.entity.name, values: barsOf(maj), fair: false },
                     { label: "TasteBridge picks", name: top.r.entity.name, values: barsOf(top.r), fair: true },
                   ]}
-                  people={top.r.scores.map((s) => ({ name: s.member_name, color: color(s.member_id) }))}
+                  people={top.r.scores.map((s) => ({ name: s.member_name, color: color(s.member_id), flexible: s.flexible }))}
                   highlight={majLow ? top.r.scores.findIndex((s) => s.member_id === majLow.member_id) : undefined}
                 />
                 {majLow && decision.shortlist_size && majLow.percentile !== undefined && (
