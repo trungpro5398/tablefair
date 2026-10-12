@@ -1,6 +1,6 @@
 # TableFair
 
-**Watch the 2-minute narrated walkthrough:** [docs/media/tastebridge-demo.mp4](docs/media/tastebridge-demo.mp4). It shows real runs on live Qloo data, no mock-ups: the production showcase run of 12 Oct, plus local runs for the opening-hours, dietary and film options.
+**Watch the 2½-minute narrated walkthrough:** [docs/media/tablefair-demo.mp4](docs/media/tablefair-demo.mp4). It shows real runs on live Qloo data, no mock-ups: the production showcase run of 13 Oct (including the no-taste-data baseline), plus local runs for the opening-hours, dietary and film options.
 
 **Live:** https://tablefair.vercel.app
 

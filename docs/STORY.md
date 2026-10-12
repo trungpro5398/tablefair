@@ -1,5 +1,5 @@
 ## In 30 seconds
-**Try it:** [tablefair.vercel.app](https://tablefair.vercel.app). Press "Demo: three generations, one lunch" (no account) and watch the agent work live. **Watch:** the narrated walkthrough on this page (2 min 14 s). **Code:** [github.com/trungpro5398/tablefair](https://github.com/trungpro5398/tablefair) (MIT).
+**Try it:** [tablefair.vercel.app](https://tablefair.vercel.app). Press "Demo: three generations, one lunch" (no account) and watch the agent work live. **Watch:** the narrated walkthrough on this page (2 min 31 s). **Code:** [github.com/trungpro5398/tablefair](https://github.com/trungpro5398/tablefair) (MIT).
 
 **The problem.** Couples spend about 17 minutes deciding where dinner comes from, and viewers browse about 12 minutes before finding something to watch ([sources](https://github.com/trungpro5398/tablefair/blob/main/docs/MARKET.md)). Group apps settle it by swiping or voting. When you average everyone's taste, the person who would hate the choice disappears into the average.
 
