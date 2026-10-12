@@ -295,3 +295,27 @@ test("the most popular option that fits is scored for everyone as the no-taste b
   assert.ok((pop.entity.meta?.match(/\$+/)?.[0].length ?? 0) <= 2, "the baseline meets the same budget");
   assert.ok(result.trace.some((s) => /most popular option that fits/.test(s.summary)));
 });
+
+test("Claude-alone's pick is found, scored for everyone, checked against hard rules and never picked", async () => {
+  const session = new DecisionSession(huddle("One vegetarian, under $$$"));
+  session.llmAsk = Promise.resolve({ name: "Kintsugi Omakase", reason: "Everyone likes Japanese food", usd: 0 });
+  await session.generateCandidates();
+  await session.scoreMembers();
+  const d = session.toDecision("rules");
+  assert.ok(d.llm_only?.found, "looked up in Qloo");
+  assert.equal(d.llm_only?.candidate?.scores.length, 2, "scored for every member");
+  assert.ok(d.llm_only?.violations.some((v) => /over budget/.test(v)));
+  assert.ok(d.llm_only?.violations.some((v) => /vegetarian/.test(v)));
+  assert.ok(!d.ranked.some((r) => r.entity.name === "Kintsugi Omakase"), "a rule-breaking suggestion never competes");
+  assert.ok(d.trace.some((s) => /Asked without Qloo, Claude suggested Kintsugi Omakase/.test(s.summary)));
+});
+
+test("an unknown Claude-alone suggestion is reported as not found", async () => {
+  const session = new DecisionSession(huddle(""));
+  session.llmAsk = Promise.resolve({ name: "A Restaurant That Does Not Exist", reason: "", usd: 0 });
+  await session.generateCandidates();
+  await session.scoreMembers();
+  const d = session.toDecision("rules");
+  assert.equal(d.llm_only?.found, false);
+  assert.equal(d.llm_only?.candidate, undefined);
+});

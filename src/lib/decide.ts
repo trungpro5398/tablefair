@@ -6,13 +6,24 @@
 import "server-only";
 import { groupCompatibility, rankFairly } from "./fairness";
 import { highlights } from "./highlights";
-import { MIN_STAY_MIN, clock, openAt, parseWhen, whenLabel } from "./hours";
-import { DINNER_EXCLUDE, DINNER_TAG, compareTastes, findTags, insights, isDiningVenue, qlooMode } from "./qloo";
+import { MIN_STAY_MIN, clock, minutesLabel, openAt, parseWhen, whenLabel } from "./hours";
+import {
+  DINNER_EXCLUDE,
+  DINNER_TAG,
+  compareTastes,
+  confidentMatch,
+  findTags,
+  insights,
+  isDiningVenue,
+  qlooMode,
+  searchEntities,
+} from "./qloo";
 import {
   DIETS,
   KID_RATINGS,
   KIND_TO_TYPE,
   type Decision,
+  type Entity,
   type Huddle,
   type InsightEntity,
   type Pick,
@@ -90,6 +101,11 @@ export class DecisionSession {
   /** the most popular option that meets the same must-haves, found with no taste data (the "without Qloo taste" baseline) */
   popular: RankedCandidate | null = null;
   private popularId: string | null = null;
+  /** set by the agent: the same model's pick when asked without Qloo (the "Claude alone" baseline) */
+  llmAsk?: Promise<{ name: string; reason: string; usd: number } | null>;
+  llmOnly: Decision["llm_only"] = undefined;
+  /** Qloo's entity for that pick; undefined until looked up, null when not found */
+  private llmEntity: InsightEntity | null | undefined = undefined;
   filters: Record<string, string | number> = {};
   trace: Decision["trace"] = [];
   picks: Pick[] | null = null;
@@ -377,10 +393,73 @@ export class DecisionSession {
     return this.shortlist;
   }
 
+  /** Find the "Claude alone" pick in Qloo and list the hard rules it breaks, from Qloo's own data. */
+  private async resolveLlmOnly() {
+    if (!this.llmAsk || this.llmEntity !== undefined) return;
+    const answer = await Promise.race([this.llmAsk, new Promise<null>((r) => setTimeout(() => r(null), 15_000))]).catch(() => null);
+    if (!answer) {
+      this.llmEntity = null;
+      return;
+    }
+    const isPlace = this.huddle.kind === "place";
+    const query = isPlace && this.huddle.location ? `${answer.name} ${this.huddle.location}` : answer.name;
+    const hits = await searchEntities(query, [this.type], 6).catch(() => [] as Entity[]);
+    // same name, and for places in the same area as tonight's shortlist (Qloo lists same-name venues worldwide)
+    const pts = this.shortlist.filter((c) => c.lat !== undefined && c.lon !== undefined);
+    const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+    const near = (e: Entity) => {
+      if (!isPlace || pts.length < 3 || e.lat === undefined || e.lon === undefined) return true;
+      const cLat = median(pts.map((p) => p.lat!));
+      const cLon = median(pts.map((p) => p.lon!));
+      return Math.hypot((e.lat - cLat) * 111.2, (e.lon - cLon) * 111.2 * Math.cos((cLat * Math.PI) / 180)) <= 40;
+    };
+    const match = (list: Entity[]) => list.find((h) => confidentMatch(answer.name, h.name) && near(h));
+    // the city in the query helps Qloo rank the right venue; fall back to the name alone
+    const hit = match(hits) ?? (query !== answer.name ? match(await searchEntities(answer.name, [this.type], 6).catch(() => [] as Entity[])) : undefined);
+    this.llmEntity = hit ? { ...hit, affinity: 0, explain: {} } : null;
+    this.llmOnly = { name: hit?.name ?? answer.name, reason: answer.reason, found: !!hit, violations: hit ? this.hardRuleBreaks(hit) : [] };
+  }
+
+  /** The group's hard rules an option breaks, checked against Qloo's data for it. */
+  hardRuleBreaks(e: Entity): string[] {
+    const out: string[] = [];
+    const tagIds = new Set((e.tags ?? []).map((t) => t.id));
+    if (this.huddle.kind === "place") {
+      if (!isDiningVenue(e)) out.push("Qloo lists it as a bar, café or shop, not a restaurant");
+      const when = parseWhen(this.huddle.when) ? this.huddle.when : undefined;
+      if (when && openAt(e.hours, when)?.open === false) out.push(`closed ${whenLabel(when)}`);
+      const price = e.meta?.match(/\$+/)?.[0].length;
+      const max = Number(this.filters.price_level_max) || parsePrice(this.huddle.notes);
+      if (price && max && price > max) out.push(`over budget (${"$".repeat(price)})`);
+      (this.requiredTags ?? [])
+        .filter((t) => t !== DINNER_TAG)
+        .forEach((t, i) => {
+          if (!tagIds.has(t)) out.push(`not listed by Qloo as ${this.dietNeeds[i] ?? "meeting a dietary need"}`);
+        });
+      if (this.wantsCalm() && e.tags?.some((t) => CALM_AVOID.includes(t.id) || /^(loud|noisy|bustling|lively)$/i.test(t.name)))
+        out.push("tagged loud or lively, but calm was asked for");
+    } else {
+      if (this.huddle.kids && !KID_RATINGS.includes(e.content_rating ?? ""))
+        out.push(e.content_rating ? `rated ${e.content_rating}, with children watching` : "no kid-friendly age rating");
+      if (this.huddle.max_minutes && e.runtime && e.runtime > this.huddle.max_minutes)
+        out.push(`runs ${minutesLabel(e.runtime)}, longer than you have`);
+    }
+    const vetoed =
+      (this.privateTags ?? []).some((t) => tagIds.has(t)) ||
+      this.privateTerms.some(
+        (w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "")}s?\\b`, "i").test(e.name) || e.tags?.some((t) => closeTagName(t.name, w)),
+      );
+    if (vetoed) out.push("breaks a private “not tonight” request");
+    return out;
+  }
+
   async scoreMembers() {
     if (!this.shortlist.length) return { ranked: [], majority: null };
     if (this.repeated && this.ranked.length) return { ranked: this.ranked, majority: this.majority };
-    const ids = this.shortlist.map((c) => c.entity_id);
+    await this.resolveLlmOnly();
+    // Claude-alone's pick is scored in the same per-person call, but never competes for tonight's pick
+    const extra = this.llmEntity && !this.shortlist.some((c) => c.entity_id === this.llmEntity!.entity_id) ? this.llmEntity : null;
+    const ids = [...this.shortlist.map((c) => c.entity_id), ...(extra ? [extra.entity_id] : [])];
     const results = await Promise.all(
       this.huddle.members.map((m) =>
         insights({
@@ -408,14 +487,21 @@ export class DecisionSession {
     this.ranked = ranked;
     this.majority = majority;
     this.popular = ranked.find((r) => r.entity.entity_id === this.popularId) ?? null;
+    if (this.llmOnly && this.llmEntity) {
+      const id = this.llmEntity.entity_id;
+      this.llmOnly.candidate =
+        ranked.find((r) => r.entity.entity_id === id) ??
+        rankFairly([...this.shortlist, this.llmEntity], this.huddle.members, this.perMember, credits).ranked.find((r) => r.entity.entity_id === id);
+    }
     const top = ranked[0];
     const popular = this.popular;
+    const llm = this.llmOnly;
     this.lastTop = top && { id: top.entity.entity_id, name: top.entity.name };
     const sameTop = before && top && before.id === top.entity.entity_id;
     const moved = before && !sameTop ? ranked.find((r) => r.entity.entity_id === before.id) : undefined;
     this.log(
       "score_for_members",
-      `Scored all ${ids.length} for each of the ${this.huddle.members.length} people. Fairest: ${top?.entity.name} (nobody with a clear preference below ${pct(top?.min_satisfaction ?? 0)}).` +
+      `Scored all ${this.shortlist.length} for each of the ${this.huddle.members.length} people. Fairest: ${top?.entity.name} (nobody with a clear preference below ${pct(top?.min_satisfaction ?? 0)}).` +
         (majority && top && majority.entity.entity_id !== top.entity.entity_id
           ? ` A simple average would pick ${majority.entity.name}, where someone with a clear preference drops to ${pct(majority.min_satisfaction)}.`
           : " A simple average would pick the same.") +
@@ -424,6 +510,12 @@ export class DecisionSession {
           : popular
             ? " It is also the most popular option that fits."
             : "") +
+        (llm
+          ? ` Asked without Qloo, Claude suggested ${llm.name}` +
+            (llm.candidate ? `, where someone with a clear preference is at ${pct(llm.candidate.min_satisfaction)}` : ", which Qloo could not find nearby") +
+            (llm.violations.length ? ` (${llm.violations.join("; ")})` : "") +
+            "."
+          : "") +
         (sameTop ? " The fairest option stayed the same." : "") +
         (before && !sameTop ? ` The previous favourite, ${before.name}, ${moved ? `now has a lowest match of ${pct(moved.min_satisfaction)}` : "is no longer on the list"}.` : ""),
     );
@@ -500,6 +592,16 @@ export class DecisionSession {
         lowest_match_among_people_with_a_clear_preference: pct(this.majority.min_satisfaction),
         lowest_match_member: [...this.majority.scores].sort((a, b) => a.satisfaction - b.satisfaction)[0]?.member_name,
       },
+      ...(this.llmOnly
+        ? {
+            claude_without_qloo_suggested: {
+              name: this.llmOnly.name,
+              found_in_qloo: this.llmOnly.found,
+              ...(this.llmOnly.candidate ? { lowest_match_among_people_with_a_clear_preference: pct(this.llmOnly.candidate.min_satisfaction) } : {}),
+              breaks: this.llmOnly.violations,
+            },
+          }
+        : {}),
       most_popular_option_without_taste_data: this.popular && {
         name: this.popular.entity.name,
         lowest_match_among_people_with_a_clear_preference: pct(this.popular.min_satisfaction),
@@ -584,6 +686,7 @@ export class DecisionSession {
       ranked: withPersonalTops(this.ranked, this.huddle.members.map((m) => m.id)),
       majority: this.majority,
       popular: this.popular,
+      llm_only: this.llmOnly,
       picks,
       tradeoff_note: this.tradeoffNote || ruleTradeoff(this.ranked[0], this.majority),
       trace: this.trace,

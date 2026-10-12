@@ -8,6 +8,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import * as z from "zod";
 import { DecisionSession, decideWithRules, refinementsByRules, type OnStep, type RefineContext } from "./decide";
+import { askClaudeAlone } from "./llm-only";
+import { outsideQlooLog } from "./qloo";
 import type { Decision, Huddle } from "./types";
 
 // Sonnet keeps per-decision cost low; override with ANTHROPIC_MODEL.
@@ -58,7 +60,13 @@ export function agentEnabled() {
 
 export async function decide(
   huddle: Huddle,
-  opts: { onStep?: OnStep; allowAgent?: boolean; skipReason?: string } & RefineContext = {},
+  opts: {
+    onStep?: OnStep;
+    allowAgent?: boolean;
+    skipReason?: string;
+    /** called once with a rules-only result as soon as the numbers exist, while Claude is still working */
+    onPreview?: (d: Decision) => void;
+  } & RefineContext = {},
 ): Promise<Decision> {
   const ctx: RefineContext = { refinements: opts.refinements, previous: opts.previous };
   if (!agentEnabled()) return decideWithRules(huddle, opts.onStep, undefined, ctx);
@@ -72,7 +80,18 @@ export async function decide(
 
   const s = new DecisionSession(huddle, opts.onStep, opts.refinements, opts.previous);
   s.requireReplan = true;
+  // "Claude alone": the same model, same brief, no Qloo; scored later alongside everything else
+  s.llmAsk = askClaudeAlone(huddle).catch(() => null);
   s.log("agent", "Claude is planning which Qloo lookups to make");
+  // While Claude plans, the same pipeline runs by rules so the group sees the numbers in seconds.
+  // Its Qloo responses land in the shared cache, so Claude's first shortlist is usually instant.
+  const preview = opts.onPreview
+    ? outsideQlooLog(() => decideWithRules(huddle, undefined, undefined, ctx))
+        .then((d) => {
+          if (d.ranked.length && !s.picks?.length) opts.onPreview!(d);
+        })
+        .catch(() => {})
+    : undefined;
   const json = (v: unknown) => JSON.stringify(v);
 
   const tools = [
@@ -218,7 +237,8 @@ export async function decide(
       usage.output += message.usage.output_tokens;
     }
     // Sonnet 5.5: $2 in, $10 out, cache read $0.20, cache write $2.50 per million tokens.
-    const usd = (usage.input * 2 + usage.cacheRead * 0.2 + usage.cacheWrite * 2.5 + usage.output * 10) / 1e6;
+    const alone = await s.llmAsk;
+    const usd = (usage.input * 2 + usage.cacheRead * 0.2 + usage.cacheWrite * 2.5 + usage.output * 10) / 1e6 + (alone?.usd ?? 0);
     s.usage = { ...usage, usd: +usd.toFixed(4), model: MODEL };
     console.info("[agent] usage", JSON.stringify(s.usage));
     if (final?.stop_reason === "refusal") s.log("agent", "Claude declined, so simple rules wrote the explanations");
@@ -231,6 +251,7 @@ export async function decide(
     }
   }
 
+  await preview;
   // The agent may have failed before scoring; make sure the numbers exist.
   if (!s.ranked.length) {
     if (!s.shortlist.length)

@@ -52,6 +52,11 @@ export async function withQlooLog<T>(fn: () => Promise<T>): Promise<{ result: T;
   return { result, calls: log };
 }
 
+/** Run fn without adding its Qloo requests to the current decision's log (e.g. a quick preview run). */
+export function outsideQlooLog<T>(fn: () => Promise<T>): Promise<T> {
+  return calls.exit(fn);
+}
+
 type Params = Record<string, string | number | boolean | undefined>;
 
 /** Entity-id lists are summarised as counts; tag ids, types and filters stay readable. */

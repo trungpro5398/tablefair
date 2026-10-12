@@ -111,6 +111,8 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
   const [joining, setJoining] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
+  /** rules-only result streamed while Claude is still checking and writing */
+  const [preview, setPreview] = useState<Decision | null>(null);
   const fbKey = `tb:fb:${initial.id}`;
   const storedFb = useSyncExternalStore(subscribeStorage, () => readStorage(fbKey), () => null);
   const [localFb, setLocalFb] = useState<Answers>({});
@@ -215,6 +217,8 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
 
   async function decide(force = false, refine?: string) {
     setSteps([]);
+    setPreview(null);
+    let previewed = false;
 
     setDeciding(true);
     setError("");
@@ -247,7 +251,10 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
           if (!line.trim()) continue;
           const ev = JSON.parse(line);
           if (ev.type === "step") setSteps((prev) => [...prev, { tool: ev.tool, summary: ev.summary }]);
-          else if (ev.type === "error") throw new Error(ev.error);
+          else if (ev.type === "preview") {
+            previewed = true;
+            setPreview(ev.decision as Decision);
+          } else if (ev.type === "error") throw new Error(ev.error);
           else if (ev.type === "result") {
             finished = true;
             setHuddle((h) => ({ ...h, result: ev.decision as Decision }));
@@ -255,11 +262,13 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
         }
       }
       if (!finished) throw new Error("The decision was interrupted. Please try again.");
-      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      // after a preview the result is already on screen; don't pull a reader back to the top
+      if (!previewed) requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect. Try again.");
     } finally {
       setDeciding(false);
+      setPreview(null);
     }
   }
 
@@ -324,7 +333,21 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
 
   const decisionSection = (
     <div ref={decisionRef} className="scroll-mt-4 space-y-6 empty:hidden">
-      {deciding ? (
+      {deciding && preview ? (
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-2xl bg-brand/10 px-4 py-3 text-sm" role="status" aria-live="polite">
+            <span className="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-brand" />
+            <span className="min-w-0">
+              <span className="font-medium">The numbers are in. Claude is double-checking the pick and writing everyone&apos;s explanations.</span>{" "}
+              <span className="text-muted">
+                {steps.length ? `${STEP_LABEL[steps[steps.length - 1].tool] ?? steps[steps.length - 1].tool}…` : "Planning…"} This updates
+                by itself.
+              </span>
+            </span>
+          </div>
+          <Results decision={preview} colors={colors} />
+        </div>
+      ) : deciding ? (
         <div className="rounded-3xl border border-line bg-card p-5 sm:p-6" role="status" aria-live="polite">
           <p className="font-display text-lg font-semibold">Finding your fair pick</p>
           <p className="text-sm text-muted">The agent is asking Qloo about everyone&apos;s taste. About 30 seconds.</p>

@@ -164,6 +164,18 @@ export type Decision = {
   majority: RankedCandidate | null;
   /** the most popular option meeting the same must-haves, found with no taste data (what a listings app shows first) */
   popular?: RankedCandidate | null;
+  /** "Claude alone": what the same model picked without Qloo, looked up in Qloo and scored the same way */
+  llm_only?: {
+    /** the name Claude gave (or Qloo's name for it, when found) */
+    name: string;
+    reason: string;
+    /** Qloo found it in the same city / catalogue */
+    found: boolean;
+    /** hard rules it breaks, from Qloo's own data ("closed Sun 18 Oct, 12:30 pm") */
+    violations: string[];
+    /** scored for every person on tonight's shortlist, when found */
+    candidate?: RankedCandidate;
+  };
   picks: Pick[];
   tradeoff_note: string;
   trace: { tool: string; summary: string }[];

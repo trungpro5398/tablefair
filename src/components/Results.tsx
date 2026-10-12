@@ -57,41 +57,83 @@ function broughtBy(names?: string[]) {
 }
 
 /** One bar value (0–100) per person, in the fair pick's member order. */
-/** The "without Qloo taste" baseline: the most popular option that fits the must-haves, scored for each person. */
-function PopularPick({ pop, top, color }: { pop: RankedCandidate; top: RankedCandidate; color: (id: string) => string }) {
-  const noun = top.entity.type === "urn:entity:place" ? "place" : top.entity.type === "urn:entity:movie" ? "film" : "show";
-  if (pop.entity.entity_id === top.entity.entity_id)
-    return (
-      <p className="mt-4 rounded-2xl border border-dashed border-line px-4 py-3 text-sm text-muted">
-        Without taste data: the most popular {noun} that fits your must-haves is also tonight&apos;s fair pick.
-      </p>
-    );
-  const popLow = lowest(pop.scores);
+/** Each person's match at one option, the least-matched person with a preference in bold. */
+function MatchChips({ c, color }: { c: RankedCandidate; color: (id: string) => string }) {
+  const low = lowest(c.scores);
   return (
-    <div className="mt-4 rounded-2xl border border-dashed border-line px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">Without taste data</p>
-      <p className="mt-1 text-sm">
-        The most popular {noun} that fits your must-haves is <b>{pop.entity.name}</b>, the kind of place a listings app shows
-        first.
-        {popLow && (
-          <>
-            {" "}
-            {popLow.member_name}&apos;s match there is {pct(popLow.satisfaction)}, against {pct(top.scores.find((x) => x.member_id === popLow.member_id)?.satisfaction ?? 0)}{" "}
-            at {top.entity.name}.
-          </>
-        )}
-      </p>
-      <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={`Taste matches at ${pop.entity.name}`}>
-        {pop.scores.map((s) => (
-          <li
-            key={s.member_id}
-            className={`flex items-center gap-1 rounded-full bg-soft px-2 py-0.5 text-xs tabular-nums ${s.flexible ? "opacity-50" : ""} ${s.member_id === popLow?.member_id ? "font-semibold" : ""}`}
-          >
-            <span className="size-1.5 rounded-full" style={{ background: color(s.member_id) }} aria-hidden />
-            {s.member_name} {pct(s.satisfaction)}
-          </li>
-        ))}
-      </ul>
+    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={`Taste matches at ${c.entity.name}`}>
+      {c.scores.map((s) => (
+        <li
+          key={s.member_id}
+          className={`flex items-center gap-1 rounded-full bg-soft px-2 py-0.5 text-xs tabular-nums ${s.flexible ? "opacity-50" : ""} ${s.member_id === low?.member_id ? "font-semibold" : ""}`}
+        >
+          <span className="size-1.5 rounded-full" style={{ background: color(s.member_id) }} aria-hidden />
+          {s.member_name} {pct(s.satisfaction)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** "Lan's match there is 43%, against 65% at ima Asa Yoru." */
+function versus(c: RankedCandidate, top: RankedCandidate) {
+  const low = lowest(c.scores);
+  if (!low) return "";
+  const here = top.scores.find((x) => x.member_id === low.member_id)?.satisfaction ?? 0;
+  return ` ${low.member_name}'s match there is ${pct(low.satisfaction)}, against ${pct(here)} at ${top.entity.name}.`;
+}
+
+/**
+ * What the group would get without Qloo's taste graph, each option scored for every person:
+ * the same model asked on its own ("Claude alone"), and the most popular option that fits.
+ */
+function WithoutQloo({
+  llm,
+  pop,
+  top,
+  color,
+}: {
+  llm?: Decision["llm_only"];
+  pop?: RankedCandidate | null;
+  top: RankedCandidate;
+  color: (id: string) => string;
+}) {
+  if (!llm && !pop) return null;
+  const noun = top.entity.type === "urn:entity:place" ? "place" : top.entity.type === "urn:entity:movie" ? "film" : "show";
+  const same = (c?: RankedCandidate | null) => !!c && c.entity.entity_id === top.entity.entity_id;
+  return (
+    <div className="mt-4 space-y-3 rounded-2xl border border-dashed border-line px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">Without Qloo&apos;s taste graph</p>
+      {llm && (
+        <div className="text-sm">
+          <p>
+            <span className="font-medium">Claude alone</span>, given the same brief but no Qloo, suggested <b>{llm.name}</b>
+            {llm.reason && <span className="text-muted"> (&ldquo;{llm.reason}&rdquo;)</span>}.
+            {!llm.found && ` Qloo couldn't find it nearby, so nobody's match there can be checked.`}
+            {llm.candidate && (same(llm.candidate) ? " It's also tonight's fair pick." : versus(llm.candidate, top))}
+          </p>
+          {llm.violations.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Rules it breaks">
+              {llm.violations.map((v) => (
+                <li key={v} className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium">
+                  {v}
+                </li>
+              ))}
+            </ul>
+          )}
+          {llm.candidate && !same(llm.candidate) && <MatchChips c={llm.candidate} color={color} />}
+        </div>
+      )}
+      {pop && (
+        <div className="text-sm">
+          <p>
+            <span className="font-medium">No taste data:</span> the most popular {noun} that fits your must-haves is{" "}
+            <b>{pop.entity.name}</b>, what a listings app shows first.
+            {same(pop) ? " It's also tonight's fair pick." : versus(pop, top)}
+          </p>
+          {!same(pop) && <MatchChips c={pop} color={color} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -472,7 +514,7 @@ export default function Results({
               </div>
             )}
             {decision.tradeoff_note && <p className="mt-2 max-w-prose text-sm text-muted">{decision.tradeoff_note}</p>}
-            {pop && <PopularPick pop={pop} top={top.r} color={color} />}
+            <WithoutQloo llm={decision.llm_only} pop={pop} top={top.r} color={color} />
           </div>
         )}
         <div className="border-t border-line p-3 sm:p-5">

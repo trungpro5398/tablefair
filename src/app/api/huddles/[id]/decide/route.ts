@@ -16,6 +16,7 @@ async function run(
   request: Request,
   onStep?: (s: Step) => void,
   ctx: RefineContext = {},
+  onPreview?: (d: Decision) => void,
 ): Promise<Decision | Failure> {
   let allowAgent = agentEnabled();
   let skipReason: string | undefined;
@@ -25,7 +26,7 @@ async function run(
     skipReason = budget.reason;
   }
   try {
-    const { result, calls } = await withQlooLog(() => decide(huddle, { onStep, allowAgent, skipReason, ...ctx }));
+    const { result, calls } = await withQlooLog(() => decide(huddle, { onStep, allowAgent, skipReason, onPreview, ...ctx }));
     if (!result.ranked.length) return { error: "No candidates matched. Try fewer constraints.", status: 422 };
     const decision = { ...result, qloo_calls: calls };
     await saveDecision(huddle.id, decision);
@@ -45,6 +46,7 @@ async function run(
  * POST { force?: boolean }
  * - Reuses the saved decision while the group is unchanged (joins clear it) unless force is set.
  * - With `Accept: application/x-ndjson`, streams {type:"step"} lines while the agent works,
+ *   a {type:"preview"} line with the rules-only result once the numbers exist (agent runs only),
  *   then one {type:"result"} or {type:"error"} line.
  */
 export async function POST(request: Request, ctx: RouteContext<"/api/huddles/[id]/decide">) {
@@ -110,7 +112,13 @@ export async function POST(request: Request, ctx: RouteContext<"/api/huddles/[id
       open = false;
     }
   };
-  const work = run(huddle, request, (step) => send({ type: "step", ...step }), refineCtx)
+  const work = run(
+    huddle,
+    request,
+    (step) => send({ type: "step", ...step }),
+    refineCtx,
+    (decision) => send({ type: "preview", decision }),
+  )
     .finally(() => setDeciding(id, false))
     .then((out) => {
       send("error" in out ? { type: "error", ...out } : { type: "result", decision: out });
