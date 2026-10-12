@@ -1,6 +1,6 @@
 # TasteBridge
 
-**Watch the 109-second narrated walkthrough:** [docs/media/tastebridge-demo.mp4](docs/media/tastebridge-demo.mp4) (real production runs, no mock-ups).
+**Watch the 2-minute narrated walkthrough:** [docs/media/tastebridge-demo.mp4](docs/media/tastebridge-demo.mp4). It shows real runs on live Qloo data, no mock-ups: the production showcase run of 12 Oct, plus local runs for the opening-hours, dietary and film options.
 
 **Live:** https://tastebridge-brown.vercel.app
 

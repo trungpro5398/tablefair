@@ -1,5 +1,5 @@
 ## In 30 seconds
-**Try it:** [tastebridge-brown.vercel.app](https://tastebridge-brown.vercel.app) (one click: "Demo: three generations, one lunch", no account) · **Watch:** the narrated walkthrough on this page (under 2 minutes) · **Code:** [github.com/trungpro5398/tastebridge](https://github.com/trungpro5398/tastebridge) (MIT)
+**Try it:** [tastebridge-brown.vercel.app](https://tastebridge-brown.vercel.app) (one click: "Demo: three generations, one lunch", no account) · **Watch:** the narrated walkthrough on this page (2 min 14 s) · **Code:** [github.com/trungpro5398/tastebridge](https://github.com/trungpro5398/tastebridge) (MIT)
 
 **The problem.** Couples spend about 17 minutes deciding where dinner comes from, and viewers browse about 12 minutes before finding something to watch (sources in [docs/MARKET.md](https://github.com/trungpro5398/tastebridge/blob/main/docs/MARKET.md)). Group apps settle it by swiping or voting. When a group averages everyone's taste, the person who hates the choice disappears into the average.
 
