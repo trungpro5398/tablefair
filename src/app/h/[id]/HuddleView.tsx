@@ -419,7 +419,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
             <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
               <span className="font-semibold">A recorded live run.</span> Qloo&apos;s hackathon API has used up its monthly
               request quota, so new picks can&apos;t be computed right now. This is the same demo group, run on production with
-              Claude and live Qloo data on {new Date(huddle.result.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}.
+              Claude and live Qloo data on {new Date(huddle.result.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Melbourne" })}.
               Every number below is the saved result.
             </p>
           )}

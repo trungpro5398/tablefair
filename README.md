@@ -69,6 +69,8 @@ A full agent decision measures about **$0.05–0.13** with Claude Sonnet 5.5: pr
 
 Across 120 random groups on live Qloo data (two runs of 60; half dinner, half movie), the fair pick differed from the highest-average pick in **42%** of groups. Where it differed, it lifted the least-matched person with a preference by **+13.5 percentile points** (a median raw Qloo affinity gain of +0.014 to +0.020), at a cost of 6.8 points to the group average. **Without taste data**, the most popular option meeting the same must-haves left someone with a preference below 25% in **52%** of groups (fair pick: 0%), with the least-matched person at 24% against 63%. Protecting only people who actually have a preference changed the pick in 14 of 120 groups. **37% of people were "flexible tonight"**: Qloo saw little difference between options for them, so the app doesn't present their noise-level differences as preferences. Method, both runs and the caveats are in [docs/EVALUATION.md](docs/EVALUATION.md).
 
+**Held-out test against Claude alone** (`scripts/evaluate-baselines.mts`, one run of 57 groups with real constraints): each person has four favourites, three are shown to TableFair and to Claude, and every pick is graded on the fourth. The least-matched person reaches the 41st percentile with TableFair's pick and the 18th with Claude's own pick (no Qloo); 27% of Claude's suggestions break one of the group's rules by Qloo's data. On held-out taste the fair pick only draws with the simple average (40th), and the popular pick reaches the 34th. Details in [docs/EVALUATION.md](docs/EVALUATION.md).
+
 ### The fairness rule
 
 Raw affinities aren't comparable across people, so each person's scores are turned into a within-person percentile *s_i(c)* over tonight's shortlist.

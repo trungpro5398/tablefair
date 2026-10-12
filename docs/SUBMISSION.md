@@ -1,4 +1,4 @@
-# Submission checklist (updated 13 October 2026)
+# Submission checklist (updated 13 October 2026, evening)
 
 The project description submitted on Devpost is [docs/STORY.md](STORY.md).
 
@@ -43,6 +43,13 @@ Qloo kit guidance (`qloo-hackathon-kit/docs/SUBMISSION.md`, `SAFE_USE.md`):
 | Headers | CSP, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy, HSTS (5/5 verified on production) |
 | Accessibility | Lighthouse (mobile): home 100 accessibility / 100 best practices / 100 SEO; result page 100 / 100 / 91 (metadata is streamed for non-crawler user agents; crawlers get it in `<head>`) |
 | Error messages | Generic to clients; details only in server logs |
+
+## Qloo quota (13 October 2026)
+The hackathon key allows 10,000 Qloo requests a month. The evaluation runs used it up on 13 October (Qloo reported a reset in about 26 days, around 9 November). Until Qloo resets or raises it:
+- `/api/health` reports `"qloo_quota": "used_up"`;
+- the demo buttons open the recorded production runs `akc5fxtv` (family lunch) and `2tnv3dtv` (movie night) with a banner;
+- search, decide, the API and MCP explain the pause; showcase runs are read-only (`src/lib/recorded.ts`).
+Ask Qloo (Discord #api-help or the hackathon contact) for a higher quota. Do not run `scripts/evaluate*.mts` against the shared key.
 
 ## Keeping it live for judging
 - Rules: the project must stay free and working until the Judging Period ends (2–16 November 2026, US Eastern). Judges may also judge only from the text, images and video.

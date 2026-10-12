@@ -30,6 +30,38 @@ A spread of 0.02 turned into a 0–100% percentile is noise, not preference. So 
 
 ## Results
 
+### Held-out test against Claude alone (13 October 2026)
+
+The numbers below this section grade the fair pick on the same favourites it optimised. To avoid that circularity, `scripts/evaluate-baselines.mts` gives each person **four** favourites, shows only three to the pipeline and to Claude, and grades every pick on the **held-out fourth**: each person's percentile for the pick among the shortlist, judged by that favourite alone (people whose held-out scores barely differ are left out). Groups also carry real constraints: a day and time for dinner (lunch or 7 pm), a budget half the time, a vegetarian in a third of dinners, children watching or a two-hour limit for some films.
+
+Four picks are compared:
+- **fair**: TableFair's pick;
+- **average**: highest mean match on the same shortlist;
+- **popular**: the most popular option for the same must-haves, with no taste signal;
+- **Claude alone**: the same Claude model, the same brief (city, time, budget, diets, things to avoid, three favourites each), no Qloo. Its answer is looked up in Qloo and scored in the same per-person call.
+
+One run, seed 11: 57 groups (29 dinner, 28 film); 47 had all four picks.
+
+| Pick | Least-matched person, held-out favourite | Same, on the favourites it saw |
+|---|---|---|
+| **fair** | **40.6** | **58.7** |
+| average | 40.1 | 51.6 |
+| popular | 33.8 | 29.1 |
+| Claude alone | 18.4 | 21.1 |
+
+Head to head on the held-out favourite (better / tied / worse for the fair pick):
+- vs **Claude alone**: **34 / 2 / 11**.
+- vs popular: 27 / 5 / 15. For **films** 18 / 0 / 2 (36.7 vs 13.1); for **dinner** the popular venue did better, 9 / 5 / 13 (43.5 vs 49.1).
+- vs average: 9 / 28 / 10, a draw (40.6 vs 40.1).
+
+**Claude alone also breaks hard rules.** It answered all 57 groups and Qloo found 55 of its suggestions nearby. **15 of those 55 (27%) broke at least one of the group's rules** according to Qloo's own data: closed at the time the group is going, over budget, not listed as vegetarian, the wrong age rating with children watching, or longer than the time they have. TableFair's picks break none of these by construction. Claude's baseline cost $0.11 for the run.
+
+**What this shows, and what it doesn't.**
+- Qloo's taste graph is what makes the difference against a language model on its own: Claude's unaided pick leaves the least-matched person far lower even on a favourite Claude was never asked about, and a quarter of its picks don't fit the evening.
+- Against the simple average, the fair pick's advantage does not carry over to a held-out favourite: the two are level. The protection is real for the tastes people told us about, which is what the app shows and promises, not a claim about tastes it never saw.
+- For dinner, a popular venue is a reasonable compromise on held-out taste; for films, popularity is a poor one.
+- A second run was stopped: together with the earlier evaluations it used up the hackathon key's monthly Qloo quota (see Limitations).
+
 ### Without taste data (13 October 2026)
 
 | Run | Groups | Popular pick ≠ fair pick | Least-matched person with a preference: popular vs fair | Group average: popular vs fair | Someone with a preference below 25%: popular vs fair |
@@ -79,6 +111,8 @@ Earlier pipelines, same day, for comparison:
 ## Limitations
 
 - These are synthetic groups drawn from popular favourites; real groups may disagree more or less.
+- The held-out test is one run of 57 groups. Its differences against the average and the popular pick are small and could move with more groups.
+- The hackathon key allows 10,000 Qloo requests a month. The evaluations above used most of it, and on 13 October it ran out; while it is out, the app's demo buttons open recorded production runs.
 - The popular pick is Qloo's own popularity ranking for the same filters, a stand-in for "what a listings app shows first". A real app might rank by rating or distance instead.
 - Percentiles are relative to each shortlist. They describe Qloo audience-level affinities, not measured happiness.
 - Maximin cannot lower the minimum by construction. The informative numbers are how often the decision changes and the size of the trade-off.
