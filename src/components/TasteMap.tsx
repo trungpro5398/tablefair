@@ -30,12 +30,13 @@ export default function TasteMap({ decision, colors }: { decision: Decision; col
   // behind the others. Options that leave nobody behind stay in the middle: that is the bridge.
   const offset = (c: RankedCandidate) => {
     const sats = people.map((p) => c.scores.find((x) => x.member_id === p.id)?.satisfaction ?? 0);
-    const mean = sats.reduce((a, b) => a + b, 0) / sats.length;
-    // flexible people barely mind, so an option is never pushed away from them
+    // flexible people barely mind, so an option is never pushed away from them, and their
+    // noise-level scores don't set the bar either: "behind" means behind the others who care
     const carers = people.map((p, i) => i).filter((i) => !people[i].flexible);
     const pool = carers.length ? carers : people.map((_, i) => i);
+    const mean = pool.reduce((a, i) => a + sats[i], 0) / pool.length;
     const worst = pool.reduce((w, i) => (sats[i] < sats[w] ? i : w), pool[0]);
-    const gap = mean - sats[worst];
+    const gap = Math.max(0, mean - sats[worst]);
     const p = people[worst];
     return { dx: (-gap * (p.x - C)) / R, dy: (-gap * (p.y - C)) / R };
   };
@@ -98,7 +99,6 @@ export default function TasteMap({ decision, colors }: { decision: Decision; col
                   stroke="var(--card)"
                   strokeWidth={2}
                 />
-                {r !== "other" && <DotLabel x={x} y={y} text={labelFor(c, r)} />}
               </g>
             );
           })}
@@ -133,6 +133,13 @@ export default function TasteMap({ decision, colors }: { decision: Decision; col
               </text>
             </g>
           ))}
+          {/* labels last, so the corner circles never cover them */}
+          {ordered
+            .filter((c) => role(c) !== "other")
+            .map((c) => {
+              const { x, y } = place(c);
+              return <DotLabel key={`label-${c.entity.entity_id}`} x={x} y={y} text={labelFor(c, role(c))} />;
+            })}
         </svg>
         {hover && (
           <div className="pointer-events-none absolute left-1/2 top-2 z-10 w-60 -translate-x-1/2 rounded-xl border border-line bg-card p-2.5 text-xs shadow-lg">
