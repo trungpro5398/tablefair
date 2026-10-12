@@ -7,7 +7,7 @@ The project description submitted on Devpost is [docs/STORY.md](STORY.md).
 | Requirement (from qloo.devpost.com) | Status | Evidence |
 |---|---|---|
 | Working software that integrates the Qloo API and functions as an agentic tool / is built with an agent framework | ✅ | Claude tool-runner agent with 5 Qloo-backed tools (`src/lib/agent.ts`); live Qloo hackathon API in production |
-| Link to a functional demo that judges can try end to end | ✅ | https://tastebridge-brown.vercel.app (two one-click demos, no account); recorded showcase runs linked from STORY.md |
+| Link to a functional demo that judges can try end to end | ✅ | https://tastebridge-brown.vercel.app (two one-click demos, no account; the agent starts on arrival); recorded showcase runs linked from STORY.md |
 | Public code repository with source, assets and run instructions | ✅ | https://github.com/trungpro5398/tastebridge; README "Run locally" works with no keys (offline catalogue) |
 | Text description of what it does and what makes it Qloo-powered | ✅ | docs/STORY.md |
 | Externally hosted, fully published (not local / private) | ✅ | Vercel production + Supabase; no deployment protection on the production URL |
@@ -59,4 +59,5 @@ alter table members add column if not exists needs text[];
 ## Before pressing Submit
 - Re-run `npm test`, `npm run lint`, `npm run build`, and click both demos on production.
 - Make sure the Devpost description matches docs/STORY.md and the gallery shows the current UI.
+- Devpost images (kept outside this repo, in `press/`): thumbnail `thumbnail-v3.png` (3:2) and gallery `gallery-v7/g01–g10.png` (1920×1080, all from the 12 Oct showcase run, rebuilt with `gallery-v7/build.py`).
 - Submit before **30 Oct 2026, 11:45 pm US Eastern = 31 Oct 2026, 2:45 pm Melbourne**. Edits remain possible until the deadline.
