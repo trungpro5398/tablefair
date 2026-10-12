@@ -12,7 +12,7 @@ The project description submitted on Devpost is [docs/STORY.md](STORY.md).
 | Text description of what it does and what makes it Qloo-powered | ✅ | docs/STORY.md |
 | Externally hosted, fully published (not local / private) | ✅ | Vercel production + Supabase; no deployment protection on the production URL |
 | Open-source license visible in the repo's About section | ✅ | MIT, detected by GitHub |
-| Demo video | ✅ in repo | 151-second narrated walkthrough built from real runs on live Qloo data (production showcase run of 13 Oct with the no-taste-data baseline, MCP call on production, local runs for the plan options): docs/media/tablefair-demo.mp4. Devpost needs a YouTube/Vimeo link: upload it and paste the URL into "Video demo link". |
+| Demo video | ✅ in repo | 151-second narrated walkthrough built from real runs on live Qloo data (production showcase run of 12 Oct with the no-taste-data baseline, MCP call on production, local runs for the plan options): docs/media/tablefair-demo.mp4. Devpost needs a YouTube/Vimeo link: upload it and paste the URL into "Video demo link". |
 
 Qloo kit guidance (`qloo-hackathon-kit/docs/SUBMISSION.md`, `SAFE_USE.md`):
 
@@ -66,5 +66,5 @@ alter table members add column if not exists needs text[];
 ## Before pressing Submit
 - Re-run `npm test`, `npm run lint`, `npm run build`, and click both demos on production.
 - Make sure the Devpost description matches docs/STORY.md and the gallery shows the current UI.
-- Devpost images (kept outside this repo, in `press/`): thumbnail `thumbnail-v4.png` (3:2) and gallery `gallery-v8/g01–g11.png` (1920×1080, from the 13 Oct showcase run, rebuilt with `gallery-v8/build.py`; screenshots via `video/v4/capture.mjs`).
+- Devpost images (kept outside this repo, in `press/`): thumbnail `thumbnail-v4.png` (3:2) and gallery `gallery-v8/g01–g12.png` (g12 = architecture, from `diagram/architecture.html`) (1920×1080, from the 12 Oct showcase run, rebuilt with `gallery-v8/build.py`; screenshots via `video/v4/capture.mjs`).
 - Submit before **30 Oct 2026, 11:45 pm US Eastern = 31 Oct 2026, 2:45 pm Melbourne**. Edits remain possible until the deadline.

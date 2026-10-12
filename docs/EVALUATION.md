@@ -2,7 +2,7 @@
 
 **Question.** When a group decides by the option with the highest average match, or by the most popular option with no taste data at all, how often does that leave one person badly served? And what does TableFair's fair pick change?
 
-## Method (13 October 2026, live Qloo hackathon API)
+## Method (12–13 October 2026, live Qloo hackathon API)
 
 - `scripts/evaluate.mts` builds random groups of 3–5 people from a fixed pool of 24 well-known favourites: films, TV shows and artists, resolved with Qloo `/search`.
 - Each person gets 3 favourites. Half the groups decide on a dinner spot in Melbourne, half on a movie.
@@ -62,7 +62,7 @@ Head to head on the held-out favourite (better / tied / worse for the fair pick)
 - For dinner, a popular venue is a reasonable compromise on held-out taste; for films, popularity is a poor one.
 - A second run was stopped: together with the earlier evaluations it used up the hackathon key's monthly Qloo quota (see Limitations).
 
-### Without taste data (13 October 2026)
+### Without taste data (12 October 2026)
 
 | Run | Groups | Popular pick ≠ fair pick | Least-matched person with a preference: popular vs fair | Group average: popular vs fair | Someone with a preference below 25%: popular vs fair |
 |---|---|---|---|---|---|
@@ -72,7 +72,7 @@ Head to head on the held-out favourite (better / tied / worse for the fair pick)
 
 Without taste data, the most popular option that fits leaves someone with a clear preference below 25% in half the groups. The fair pick never does, and it is better for the group average too (+30 points), because the popular option suits nobody in particular. This is the plainest answer to "would it work the same without Qloo?": no.
 
-### Fair pick vs the simple average (13 October 2026)
+### Fair pick vs the simple average (12 October 2026)
 
 | Run | Groups | People flexible tonight | Fair pick ≠ average pick | Where they differ: gain for the least-matched person with a preference | Cost to the group average | Raw Qloo affinity gain for that person (median) | Pick changed vs plain maximin |
 |---|---|---|---|---|---|---|---|

@@ -67,6 +67,8 @@ Result: ima Asa Yoru (lowest match 65%) · average pick Alimentari (50%) · popu
 What this does not establish: how any one person will feel. The matches are ranks among tonight's options, based on what fans of each person's favourites tend to like.
 
 ## How we built it
+![TableFair under the hood](https://raw.githubusercontent.com/trungpro5398/tablefair/main/docs/media/architecture.png)
+
 - **Agent.** Claude runs through the Anthropic TypeScript SDK tool runner with five typed tools: `find_tags`, `group_candidates`, `score_for_members`, `compare_tastes` and `finalize`. It chooses filters, compares the two people who disagree most, and re-plans once if the protected person is in their bottom half. Each step is streamed live to the page.
 - **Fast first answer.** While Claude plans, the same pipeline runs by rules, so the group sees the pick and everyone's numbers in about 10 seconds; Claude's checked version and explanations replace it a little later. Qloo responses land in a shared cache, so the agent's first shortlist costs no extra calls.
 - **Claude alone, as a control.** The same model also gets the same brief without Qloo. Its suggestion is looked up with `/search`, scored for every person in the same `filter.results.entities` call, and checked against the group's rules using Qloo's own hours, price, dietary and age-rating data. It is shown, never picked.
