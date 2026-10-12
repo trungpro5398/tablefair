@@ -4,6 +4,7 @@ import { ConstraintError, type RefineContext, type Step } from "@/lib/decide";
 import { QlooError, withQlooLog } from "@/lib/qloo";
 import { carriedOver } from "@/lib/fairness";
 import { QUOTA_MESSAGE, rememberQuota } from "@/lib/quota";
+import { LOCKED_MESSAGE, isLocked } from "@/lib/recorded";
 import { getHistory, getHuddle, getPrivate, isDeciding, saveDecision, setDeciding } from "@/lib/store";
 import type { Decision, Huddle } from "@/lib/types";
 import { ipHash, reserveAgentRun } from "@/lib/usage";
@@ -75,6 +76,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/huddles/[id
       }
     : {};
   const stream = request.headers.get("accept")?.includes("application/x-ndjson");
+  // recorded showcase runs keep their saved result: no re-runs or follow-ups
+  if (isLocked(id) && (body.force === true || refine || !huddle.result))
+    return Response.json({ error: LOCKED_MESSAGE }, { status: 403 });
 
   if (huddle.result && body.force !== true && !refine) {
     if (!stream) return Response.json(huddle.result);

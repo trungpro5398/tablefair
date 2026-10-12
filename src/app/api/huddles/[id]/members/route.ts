@@ -1,8 +1,10 @@
+import { LOCKED_MESSAGE, isLocked } from "@/lib/recorded";
 import { addMember, getHuddle } from "@/lib/store";
 import { JoinHuddle } from "../../../schemas";
 
 export async function POST(request: Request, ctx: RouteContext<"/api/huddles/[id]/members">) {
   const { id } = await ctx.params;
+  if (isLocked(id)) return Response.json({ error: LOCKED_MESSAGE }, { status: 403 });
   const huddle = await getHuddle(id);
   if (!huddle) return Response.json({ error: "Huddle not found" }, { status: 404 });
   if (huddle.members.length >= 8) return Response.json({ error: "This huddle is full (8 people)" }, { status: 409 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { minutesLabel, whenLabel } from "@/lib/hours";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { STEP_LABEL } from "@/lib/steps";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -9,6 +10,7 @@ import InvitePanel from "@/components/InvitePanel";
 import Avatar from "@/components/Avatar";
 import Results from "@/components/Results";
 import { memberColor } from "@/lib/members";
+import { isLocked } from "@/lib/recorded";
 import { DIETS, type Decision, type Diet, type Entity, type Huddle } from "@/lib/types";
 
 const KIND_LABEL = { place: "Dinner spot", movie: "Movie", tv_show: "TV show" } as const;
@@ -336,6 +338,8 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
   }
 
   const canDecide = huddle.members.length >= 2;
+  /** a recorded showcase run: read-only, so no joining, re-running or re-planning */
+  const locked = isLocked(huddle.id);
   const colors = Object.fromEntries(huddle.members.map((m, i) => [m.id, memberColor(i)]));
   const stage = huddle.result ? 3 : canDecide ? 2 : 1;
 
@@ -439,15 +443,17 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
                 <button onClick={() => openPanel("evidence")} className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft">
                   The exact Qloo requests
                 </button>
-                <button
-                  onClick={() => {
-                    setShowJoin(true);
-                    requestAnimationFrame(() => document.getElementById("member-name")?.focus());
-                  }}
-                  className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft"
-                >
-                  Add your own taste
-                </button>
+                {!locked && (
+                  <button
+                    onClick={() => {
+                      setShowJoin(true);
+                      requestAnimationFrame(() => document.getElementById("member-name")?.focus());
+                    }}
+                    className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft"
+                  >
+                    Add your own taste
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -460,18 +466,31 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
                   <button onClick={shareResult} className="rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-brand-ink hover:opacity-90">
                     {copied ? "Message copied" : "Send the pick to the group"}
                   </button>
-                  <button onClick={() => decide(true)} className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm hover:bg-soft">
-                    Run again
-                  </button>
-                  <button
-                    onClick={planNext}
-                    disabled={planning}
-                    className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm hover:bg-soft disabled:opacity-50"
-                    title="Same people and favourites. Whoever gave way tonight gets a little credit next time."
-                  >
-                    {planning ? "Setting up…" : "Plan the next outing"}
-                  </button>
+                  {!locked && (
+                    <>
+                      <button onClick={() => decide(true)} className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm hover:bg-soft">
+                        Run again
+                      </button>
+                      <button
+                        onClick={planNext}
+                        disabled={planning}
+                        className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm hover:bg-soft disabled:opacity-50"
+                        title="Same people and favourites. Whoever gave way tonight gets a little credit next time."
+                      >
+                        {planning ? "Setting up…" : "Plan the next outing"}
+                      </button>
+                    </>
+                  )}
                 </div>
+                {locked ? (
+                  <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
+                    This is a recorded showcase run, so it stays as it was.{" "}
+                    <Link href="/#start" className="font-medium text-brand underline-offset-4 hover:underline">
+                      Start your own huddle
+                    </Link>{" "}
+                    to try TableFair with your group.
+                  </p>
+                ) : (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -521,6 +540,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
                     </button>
                   </div>
                 </form>
+                )}
               </>
             }
           />
@@ -572,7 +592,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
         ))}
       </ul>
 
-      {!joinedAs && huddle.members.length < 8 && huddle.result && !showJoin && (
+      {!locked && !joinedAs && huddle.members.length < 8 && huddle.result && !showJoin && (
         <button
           onClick={() => setShowJoin(true)}
           className="mt-4 w-full rounded-xl border border-dashed border-line px-4 py-2.5 text-sm hover:bg-soft"
@@ -580,7 +600,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
           Add your taste too (the pick will update)
         </button>
       )}
-      {!joinedAs && huddle.members.length < 8 && (!huddle.result || showJoin) && (
+      {!locked && !joinedAs && huddle.members.length < 8 && (!huddle.result || showJoin) && (
         <div className="mt-5 border-t border-line pt-5">
           <h3 className="font-display font-semibold">Add your taste</h3>
           <p className="text-sm text-muted">Your first name and up to three favourites. No account needed.</p>
