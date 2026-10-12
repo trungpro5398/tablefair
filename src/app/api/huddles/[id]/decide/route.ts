@@ -3,7 +3,7 @@ import { agentEnabled, decide } from "@/lib/agent";
 import { ConstraintError, type RefineContext, type Step } from "@/lib/decide";
 import { QlooError, withQlooLog } from "@/lib/qloo";
 import { carriedOver } from "@/lib/fairness";
-import { QUOTA_MESSAGE, rememberQuota } from "@/lib/quota";
+import { QUOTA_MESSAGE, quotaPaused, rememberQuota } from "@/lib/quota";
 import { LOCKED_MESSAGE, isLocked } from "@/lib/recorded";
 import { getHistory, getHuddle, getPrivate, isDeciding, saveDecision, setDeciding } from "@/lib/store";
 import type { Decision, Huddle } from "@/lib/types";
@@ -30,7 +30,8 @@ async function run(
   try {
     const { result, calls } = await withQlooLog(() => decide(huddle, { onStep, allowAgent, skipReason, onPreview, ...ctx }));
     if (!result.ranked.length) return { error: "No candidates matched. Try fewer constraints.", status: 422 };
-    const decision = { ...result, qloo_calls: calls };
+    // a fallback to the preview result carries the preview's own request log
+    const decision = { ...result, qloo_calls: result.qloo_calls?.length ? result.qloo_calls : calls };
     await saveDecision(huddle.id, decision);
     return decision;
   } catch (err) {
@@ -86,6 +87,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/huddles/[id
       headers: { "content-type": "application/x-ndjson" },
     });
   }
+
+  // no new Qloo lookups possible: say so before spending a Claude run
+  if (await quotaPaused()) return Response.json({ error: QUOTA_MESSAGE, quota: true }, { status: 503 });
 
   if (await isDeciding(id))
     return Response.json(

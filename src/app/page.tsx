@@ -2,8 +2,9 @@ import CompareBars from "@/components/CompareBars";
 import { memberColor } from "@/lib/members";
 import CreateHuddle from "./CreateHuddle";
 import DemoButton from "./DemoButton";
+import QuotaNotice from "./QuotaNotice";
 
-// recorded production run, 12 Oct 2026 (/h/x7jg7f4q): Sunday 12:30 pm, open venues only
+// recorded production run, 12 Oct 2026 (/h/akc5fxtv): Sunday 12:30 pm, open venues only
 const PEOPLE = ["Grandma Lan", "Minh", "Linh", "Mai"];
 /** Qloo saw little difference between options for Mai in this run */
 const FLEXIBLE = ["Mai"];
@@ -25,6 +26,12 @@ const steps = [
     title: "Get one pick that leaves nobody behind",
     body: "The agent scores every option for every person, then picks the one with the best lowest match.",
   },
+];
+
+const evidence = [
+  { label: "Claude alone, no Qloo", value: "27%", note: "of its picks break the group's rules: closed, over budget, not vegetarian" },
+  { label: "Least-matched person, held-back taste", value: "41 vs 18", note: "percentile with TableFair vs Claude alone; better in 34 of 47 groups" },
+  { label: "No taste data, most popular pick", value: "52%", note: "of 120 groups leave someone below 25%; the fair pick, none" },
 ];
 
 const why = [
@@ -62,6 +69,9 @@ export default function Home() {
           <a href="#start" className="mt-3 inline-block font-medium text-brand underline-offset-4 hover:underline">
             Or start your own huddle
           </a>
+          <div className="mt-4 max-w-md">
+            <QuotaNotice where="hero" />
+          </div>
         </div>
 
         <figure className="rounded-3xl border border-line bg-card p-5 sm:p-6">
@@ -97,14 +107,25 @@ export default function Home() {
       </section>
 
       <section className="rounded-3xl bg-brand p-6 text-brand-ink sm:p-10">
-        <h2 className="font-display text-3xl font-semibold tracking-tight">Tested on 120 random groups</h2>
+        <h2 className="font-display text-3xl font-semibold tracking-tight">Why Qloo, measured</h2>
         <p className="mt-2 max-w-2xl opacity-80">
-          We ran 120 random groups through live Qloo data. Without taste data, the most popular place or film that fits
-          left someone below 25% in half the groups; the fair pick never did. Against a simple average, the fair pick
-          differed in 42% of groups and lifted the least-matched person by 14 points, for a 7-point drop in the group
-          average. Real groups&apos; results appear on the Impact page as they come in.
+          Random groups on live Qloo data. Against Claude on its own, every pick was graded on a favourite held back
+          from both.
         </p>
-        <dl className="mt-6 grid gap-6 sm:grid-cols-3">
+        <dl className="mt-6 grid gap-3 sm:grid-cols-3">
+          {evidence.map((e) => (
+            <div key={e.label} className="rounded-2xl bg-card/10 p-4">
+              <dt className="text-sm opacity-80 sm:min-h-[2.5rem]">{e.label}</dt>
+              <dd className="mt-1 font-display text-3xl font-semibold tabular-nums">{e.value}</dd>
+              <dd className="mt-1 text-sm opacity-80">{e.note}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 max-w-2xl text-sm opacity-80">
+          Against a simple average the fair pick draws on held-back tastes, and lifts the least-matched person by 14 points
+          on the tastes people gave. Method and the places we don&apos;t win are on the Impact page.
+        </p>
+        <dl className="mt-8 grid gap-6 sm:grid-cols-3">
           {why.map((w) => (
             <div key={w.title}>
               <dt className="font-semibold">{w.title}</dt>
@@ -161,7 +182,8 @@ export default function Home() {
       <section id="start" className="scroll-mt-6">
         <h2 className="font-display text-3xl font-semibold tracking-tight">Start a huddle</h2>
         <p className="mt-1 text-muted">Takes ten seconds. You&apos;ll get a link and a QR code to share.</p>
-        <div className="mt-6 max-w-xl">
+        <div className="mt-6 max-w-xl space-y-4">
+          <QuotaNotice where="start" />
           <CreateHuddle />
         </div>
       </section>

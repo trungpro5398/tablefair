@@ -10,7 +10,7 @@ import InvitePanel from "@/components/InvitePanel";
 import Avatar from "@/components/Avatar";
 import Results from "@/components/Results";
 import { memberColor } from "@/lib/members";
-import { isLocked } from "@/lib/recorded";
+import { RECORDED_DEMOS, isLocked } from "@/lib/recorded";
 import { DIETS, type Decision, type Diet, type Entity, type Huddle } from "@/lib/types";
 
 const KIND_LABEL = { place: "Dinner spot", movie: "Movie", tv_show: "TV show" } as const;
@@ -244,6 +244,12 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
         const data = await res.json().catch(() => ({}));
         if (res.status === 409 && data.deciding) {
           setHuddle((h) => ({ ...h, deciding: true }));
+          return;
+        }
+        // a demo that can't be decided right now opens the recorded run of the same demo
+        // (autoRun is set before the first decide, unlike demoVisit's state update)
+        if (data.quota && autoRun.current && !refine) {
+          router.replace(`/h/${huddle.kind === "place" ? RECORDED_DEMOS.family : RECORDED_DEMOS.friends}?recorded=1`);
           return;
         }
         throw new Error(data.error ?? "Something went wrong. Try again.");
@@ -544,12 +550,12 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
               </>
             }
           />
-          <FeedbackCard
+          {!locked && <FeedbackCard
             answers={answers}
             onAnswer={answer}
             pickName={huddle.result.ranked.find((r) => r.entity.entity_id === huddle.result?.picks[0]?.entity_id)?.entity.name}
             decidedAt={huddle.result.created_at}
-          />
+          />}
         </div>
       )}
     </div>

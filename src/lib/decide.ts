@@ -281,8 +281,9 @@ export class DecisionSession {
     const members = this.huddle.members.filter((m) => m.picks.length);
     const [raw, popularRaw, ...own] = await Promise.all([
       query(this.groupSignal(), take),
-      // the same must-haves with no taste signal: what a listings app would put first
-      query([], 10),
+      // the same must-haves with no taste signal: what a listings app would put first (a baseline only,
+      // so it never sinks the decision; places need a location to rank by popularity)
+      isPlace && !location ? Promise.resolve([] as InsightEntity[]) : query([], 10).catch(() => [] as InsightEntity[]),
       ...(members.length > 1 ? members.map((m) => query(m.picks.map((p) => p.entity_id), CHAMPIONS_EACH * 2)) : []),
     ]);
     const avoidSet = new Set(avoid);
@@ -403,7 +404,12 @@ export class DecisionSession {
     }
     const isPlace = this.huddle.kind === "place";
     const query = isPlace && this.huddle.location ? `${answer.name} ${this.huddle.location}` : answer.name;
-    const hits = await searchEntities(query, [this.type], 6).catch(() => [] as Entity[]);
+    // a failed lookup (Qloo busy, quota) is not "not found": leave the baseline out instead
+    const hits = await searchEntities(query, [this.type], 6).catch(() => null);
+    if (!hits) {
+      this.llmEntity = null;
+      return;
+    }
     // same name, and for places in the same area as tonight's shortlist (Qloo lists same-name venues worldwide)
     const pts = this.shortlist.filter((c) => c.lat !== undefined && c.lon !== undefined);
     const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -415,7 +421,7 @@ export class DecisionSession {
     };
     const match = (list: Entity[]) => list.find((h) => confidentMatch(answer.name, h.name) && near(h));
     // the city in the query helps Qloo rank the right venue; fall back to the name alone
-    const hit = match(hits) ?? (query !== answer.name ? match(await searchEntities(answer.name, [this.type], 6).catch(() => [] as Entity[])) : undefined);
+    const hit = match(hits) ?? (query !== answer.name ? match((await searchEntities(answer.name, [this.type], 6).catch(() => null)) ?? []) : undefined);
     this.llmEntity = hit ? { ...hit, affinity: 0, explain: {} } : null;
     this.llmOnly = { name: hit?.name ?? answer.name, reason: answer.reason, found: !!hit, violations: hit ? this.hardRuleBreaks(hit) : [] };
   }
@@ -487,7 +493,9 @@ export class DecisionSession {
     this.ranked = ranked;
     this.majority = majority;
     this.popular = ranked.find((r) => r.entity.entity_id === this.popularId) ?? null;
-    if (this.llmOnly && this.llmEntity) {
+    // only when Qloo actually scored it for someone (otherwise the scores would be filled-in medians)
+    const llmScored = !!this.llmEntity && Object.values(this.perMember).some((list) => list.some((e) => e.entity_id === this.llmEntity!.entity_id));
+    if (this.llmOnly && this.llmEntity && llmScored) {
       const id = this.llmEntity.entity_id;
       this.llmOnly.candidate =
         ranked.find((r) => r.entity.entity_id === id) ??

@@ -31,7 +31,7 @@ function bars(label: string, c: RankedCandidate, fair: boolean) {
         {c.entity.name.length > 26 ? `${c.entity.name.slice(0, 25)}…` : c.entity.name}
       </div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 150, marginTop: 14 }}>
-        {c.scores.slice(0, 6).map((s, i) => {
+        {c.scores.slice(0, 8).map((s, i) => {
           const v = Math.round(s.satisfaction * 100);
           const strong = s.member_id === low?.member_id;
           return (

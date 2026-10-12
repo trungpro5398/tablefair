@@ -9,7 +9,7 @@ import { ConstraintError } from "@/lib/decide";
 import { FairPickInput, fairPick } from "@/lib/fair-pick";
 import { whenLabel } from "@/lib/hours";
 import { QlooError } from "@/lib/qloo";
-import { QUOTA_MESSAGE, rememberQuota } from "@/lib/quota";
+import { QUOTA_MESSAGE, quotaPaused, rememberQuota } from "@/lib/quota";
 import { createHuddle, getHuddle } from "@/lib/store";
 import { allow, ipHash } from "@/lib/usage";
 
@@ -69,6 +69,7 @@ async function callTool(name: string, args: unknown, request: Request) {
     const parsed = FairPickInput.safeParse(args);
     if (!parsed.success) return toolError(`Invalid input: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
     if (!allow(`api:${ip}`, 20, 3_600_000)) return toolError("Too many requests from this network; try again within the hour.");
+    if (await quotaPaused()) return toolError(QUOTA_MESSAGE);
     try {
       return toolResult(await fairPick(parsed.data));
     } catch (err) {

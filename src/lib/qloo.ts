@@ -44,7 +44,11 @@ export class QlooError extends Error {
 
 /** The key's monthly request quota is used up: new lookups can't run until Qloo resets or raises it. */
 export class QlooQuotaError extends QlooError {
-  constructor(readonly resetAt: number) {
+  constructor(
+    readonly resetAt: number,
+    /** true when Qloo itself just said so (not a fail-fast during a pause) */
+    readonly fresh = false,
+  ) {
     super("Qloo's monthly request quota is used up.", 429);
   }
 }
@@ -58,10 +62,14 @@ export function qlooQuotaResetAt() {
   return quota.until > Date.now() ? quota.resetAt : 0;
 }
 
-/** Remember an exhausted quota (e.g. learned by another server instance); re-checked every 15 minutes. */
-export function noteQuotaExhausted(resetAt: number) {
-  quota.until = Date.now() + QUOTA_RECHECK_MS;
-  quota.resetAt = resetAt;
+/**
+ * Remember an exhausted quota; Qloo is asked again 15 minutes after it last said so (`seenAt`), so
+ * service resumes on its own if the quota is raised. Another instance passes the time it saw it.
+ */
+export function noteQuotaExhausted(resetAt: number, seenAt = Date.now()) {
+  quota.until = seenAt + QUOTA_RECHECK_MS;
+  // the header's unit isn't documented: never believe a reset more than a month away
+  quota.resetAt = Math.min(resetAt, Date.now() + 31 * 864e5);
 }
 
 // ---------- provenance: every Qloo request made during one decision (no key, no member names) ----------
@@ -159,7 +167,7 @@ async function get(path: string, params: Params) {
     if (res.status === 429 && res.headers.get("x-month-ratelimit-remaining") === "0") {
       const resetIn = Number(res.headers.get("x-month-ratelimit-reset"));
       noteQuotaExhausted(Date.now() + (resetIn > 0 ? resetIn * 1000 : 864e5));
-      throw new QlooQuotaError(quota.resetAt);
+      throw new QlooQuotaError(quota.resetAt, true);
     }
     if (res.status !== 429 || attempt >= RETRIES_429) break;
     const wait = Number(res.headers.get("retry-after")) * 1000 || 600 * 2 ** attempt;

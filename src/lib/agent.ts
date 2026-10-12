@@ -9,7 +9,7 @@ import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import * as z from "zod";
 import { DecisionSession, decideWithRules, refinementsByRules, type OnStep, type RefineContext } from "./decide";
 import { askClaudeAlone } from "./llm-only";
-import { QlooError, outsideQlooLog } from "./qloo";
+import { QlooError, outsideQlooLog, withQlooLog } from "./qloo";
 import type { Decision, Huddle } from "./types";
 
 // Sonnet keeps per-decision cost low; override with ANTHROPIC_MODEL.
@@ -81,15 +81,17 @@ export async function decide(
   const s = new DecisionSession(huddle, opts.onStep, opts.refinements, opts.previous);
   s.requireReplan = true;
   // "Claude alone": the same model, same brief, no Qloo; scored later alongside everything else
-  s.llmAsk = askClaudeAlone(huddle).catch(() => null);
+  s.llmAsk = askClaudeAlone(huddle, opts.refinements).catch(() => null);
   s.log("agent", "Claude is planning which Qloo lookups to make");
   // While Claude plans, the same pipeline runs by rules so the group sees the numbers in seconds.
   // Its Qloo responses land in the shared cache, so Claude's first shortlist is usually instant.
   let previewDecision: Decision | undefined;
   const preview = opts.onPreview
-    ? outsideQlooLog(() => decideWithRules(huddle, undefined, undefined, ctx))
-        .then((d) => {
-          if (!d.ranked.length) return;
+    ? outsideQlooLog(() => withQlooLog(() => decideWithRules(huddle, undefined, undefined, ctx)))
+        .then(({ result, calls }) => {
+          if (!result.ranked.length) return;
+          // its own request log, so a fallback shows the calls behind the numbers it shows
+          const d = { ...result, qloo_calls: calls };
           previewDecision = d;
           if (!s.picks?.length) opts.onPreview!(d);
         })

@@ -70,6 +70,24 @@ export default function ImpactPage() {
       </section>
 
       <section>
+        <h2 className="font-display text-2xl font-semibold">Held-out test against Claude alone</h2>
+        <p className="mt-1 text-sm text-muted">
+          57 random groups with real constraints (a time, a budget, a vegetarian, children, a time limit). Each person had
+          four favourites; TableFair and Claude saw three, and every pick was graded on the fourth.{" "}
+          <a className="text-brand underline-offset-4 hover:underline" href="https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md">
+            Method
+          </a>
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Stat label="Least-matched, held-out" value="41 vs 18" note="percentile: TableFair vs Claude alone (no Qloo)" />
+          <Stat label="Claude alone breaks a rule" value="27%" note="closed, over budget, not vegetarian, wrong age rating or too long" />
+          <Stat label="TableFair better" value="34 of 47" note="groups vs Claude alone (worse in 11)" />
+          <Stat label="vs simple average" value="Draw" note="40.6 vs 40.1 on held-back tastes" />
+          <Stat label="vs most popular" value="41 vs 34" note="films 37 vs 13; dinner 44 vs 49, popular ahead" />
+        </div>
+      </section>
+
+      <section>
         <h2 className="font-display text-2xl font-semibold">Evaluation on live Qloo data</h2>
         <p className="mt-1 text-sm text-muted">
           120 random groups of 3–5 people (60 dinner, 60 movie) in two runs, same pipeline as the app, no LLM.

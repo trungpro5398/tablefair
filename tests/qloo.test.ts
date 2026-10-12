@@ -121,12 +121,24 @@ test("a used-up monthly quota fails fast instead of retrying, and later calls sk
     });
   });
   try {
-    await assert.rejects(searchEntities("quota check one", undefined, 1), (e) => e instanceof QlooQuotaError);
+    await assert.rejects(searchEntities("quota check one", undefined, 1), (e) => e instanceof QlooQuotaError && e.fresh);
     assert.equal(calls, 1, "no retries on a used-up quota");
     assert.ok(qlooQuotaResetAt() > Date.now());
-    await assert.rejects(searchEntities("quota check two", undefined, 1), (e) => e instanceof QlooQuotaError);
+    // fail-fast errors during the pause are not "fresh", so they don't extend it for other servers
+    await assert.rejects(searchEntities("quota check two", undefined, 1), (e) => e instanceof QlooQuotaError && !e.fresh);
     assert.equal(calls, 1, "later calls don't hit the network");
   } finally {
     (globalThis as unknown as { __qlooQuota: { until: number } }).__qlooQuota.until = 0;
   }
+});
+
+test("Claude-alone's brief never says who asked to avoid something", async () => {
+  const { anonymousAvoid } = await import("../src/lib/llm-only");
+  const member = (name: string, avoid?: string) => ({ id: name, name, joined_at: "", picks: [], ...(avoid ? { avoid } : {}) });
+  const out = anonymousAvoid({
+    id: "h", title: "t", kind: "place", created_at: "",
+    members: [member("Grandma Lan", "seafood, Minh's allergy"), member("Minh", "spicy food for me"), member("Linh")],
+  });
+  assert.deepEqual(out, ["seafood", "spicy food"]);
+  assert.ok(!JSON.stringify(out).toLowerCase().includes("minh"));
 });

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { LOCKED_MESSAGE, isLocked } from "@/lib/recorded";
 import { addFeedback, getHuddle } from "@/lib/store";
 import { allow, ipHash, tooMany } from "@/lib/usage";
 
@@ -9,6 +10,8 @@ const Body = z.union([
 
 export async function POST(request: Request, ctx: RouteContext<"/api/huddles/[id]/feedback">) {
   const { id } = await ctx.params;
+  // showcase runs aren't real groups: their answers would skew the impact numbers
+  if (isLocked(id)) return Response.json({ error: LOCKED_MESSAGE }, { status: 403 });
   if (!allow(`fb:${ipHash(request)}`, 30, 3_600_000)) return tooMany("answers");
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Send { question, answer }" }, { status: 400 });

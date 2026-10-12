@@ -266,14 +266,14 @@ function MeterRow({
             <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-medium">
               <span className="truncate">{s.member_name}</span>
               {protectedRow && (
-                <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-ink">
+                <span className="whitespace-nowrap rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-ink">
                   lowest match, protected
                 </span>
               )}
               {s.flexible && (
                 <span
                   title="Based on tonight's options: Qloo sees only small differences between them for this person, so the fair pick focuses on people with clearer preferences. With a different list they may not be flexible."
-                  className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted"
+                  className="whitespace-nowrap rounded-full border border-line px-2 py-0.5 text-[11px] text-muted"
                 >
                   flexible tonight
                 </span>
@@ -281,10 +281,12 @@ function MeterRow({
             </span>
             <span className="shrink-0 text-right">
               <span className="font-display text-lg font-semibold tabular-nums">{rank ?? `${v}%`}</span>
-              <span className="ml-1.5 text-xs text-muted">
+              {/* on phones the rank alone fits beside the name; the % is in the line below */}
+              <span className="ml-1.5 hidden text-xs text-muted sm:inline">
                 {rank ? `${v}% match, ` : ""}
                 {s.flexible ? "flexible" : fitWord(s.satisfaction)}
               </span>
+              {rank && <span className="block text-xs text-muted sm:hidden">{v}% match</span>}
             </span>
           </div>
           <div className="mt-1.5 h-2 rounded-full bg-soft" aria-hidden>
