@@ -1,6 +1,7 @@
 import { ConstraintError } from "@/lib/decide";
 import { FairPickInput, fairPick } from "@/lib/fair-pick";
 import { QlooError } from "@/lib/qloo";
+import { QUOTA_MESSAGE, rememberQuota } from "@/lib/quota";
 import { allow, ipHash, tooMany } from "@/lib/usage";
 
 export const maxDuration = 60;
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
     return Response.json(await fairPick(parsed.data));
   } catch (err) {
     if (err instanceof ConstraintError) return Response.json({ error: err.message }, { status: 422 });
+    if (await rememberQuota(err)) return Response.json({ error: QUOTA_MESSAGE }, { status: 503 });
     if (err instanceof QlooError) return Response.json({ error: "The taste service is busy. Try again shortly." }, { status: 502 });
     throw err;
   }

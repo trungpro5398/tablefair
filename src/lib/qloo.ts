@@ -42,6 +42,28 @@ export class QlooError extends Error {
   }
 }
 
+/** The key's monthly request quota is used up: new lookups can't run until Qloo resets or raises it. */
+export class QlooQuotaError extends QlooError {
+  constructor(readonly resetAt: number) {
+    super("Qloo's monthly request quota is used up.", 429);
+  }
+}
+
+// ---------- monthly quota: once Qloo says it's used up, fail fast for a while instead of retrying ----------
+const QUOTA_RECHECK_MS = 15 * 60 * 1000;
+const quota = ((globalThis as unknown as { __qlooQuota?: { until: number; resetAt: number } }).__qlooQuota ??= { until: 0, resetAt: 0 });
+
+/** When the quota is known to be used up, when Qloo expects to reset it (ms epoch); otherwise 0. */
+export function qlooQuotaResetAt() {
+  return quota.until > Date.now() ? quota.resetAt : 0;
+}
+
+/** Remember an exhausted quota (e.g. learned by another server instance); re-checked every 15 minutes. */
+export function noteQuotaExhausted(resetAt: number) {
+  quota.until = Date.now() + QUOTA_RECHECK_MS;
+  quota.resetAt = resetAt;
+}
+
 // ---------- provenance: every Qloo request made during one decision (no key, no member names) ----------
 const calls = new AsyncLocalStorage<QlooCall[]>();
 
@@ -119,6 +141,8 @@ async function get(path: string, params: Params) {
     return hit.data;
   }
 
+  if (qlooQuotaResetAt()) throw new QlooQuotaError(quota.resetAt);
+
   // Bounded retry on 429 only; every attempt goes through the shared limiter.
   let res: Response | undefined;
   for (let attempt = 0; ; attempt++) {
@@ -131,6 +155,12 @@ async function get(path: string, params: Params) {
     ).catch(() => {
       throw new QlooError("The taste service could not be reached.");
     });
+    // a used-up monthly quota won't recover in seconds: stop retrying and say so
+    if (res.status === 429 && res.headers.get("x-month-ratelimit-remaining") === "0") {
+      const resetIn = Number(res.headers.get("x-month-ratelimit-reset"));
+      noteQuotaExhausted(Date.now() + (resetIn > 0 ? resetIn * 1000 : 864e5));
+      throw new QlooQuotaError(quota.resetAt);
+    }
     if (res.status !== 429 || attempt >= RETRIES_429) break;
     const wait = Number(res.headers.get("retry-after")) * 1000 || 600 * 2 ** attempt;
     await new Promise((r) => setTimeout(r, Math.min(wait, 4000)));

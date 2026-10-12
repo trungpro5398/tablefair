@@ -41,7 +41,9 @@ export default function FavouritePicker({
         setNotice(
           res?.status === 429
             ? "Lots of searches right now. Give it a few seconds."
-            : res && !res.ok
+            : res?.status === 503
+              ? "Search is paused: Qloo's hackathon API has used up its monthly quota. The demos on the home page show recorded runs."
+              : res && !res.ok
               ? "Search is busy. Try again in a moment."
               : !res
                 ? "You seem to be offline."

@@ -109,3 +109,24 @@ test("taste-blind query sends no taste signal and asks Qloo to rank by popularit
   // without the flag an empty signal still means "nothing to ask"
   assert.deepEqual(await insights({ type: "urn:entity:movie", signal: [] }), []);
 });
+
+test("a used-up monthly quota fails fast instead of retrying, and later calls skip the network", async (t) => {
+  const { searchEntities, QlooQuotaError, qlooQuotaResetAt } = await qloo;
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    calls++;
+    return new Response(JSON.stringify({ error_msg: "Rate limit exceeded" }), {
+      status: 429,
+      headers: { "x-month-ratelimit-remaining": "0", "x-month-ratelimit-reset": "3600" },
+    });
+  });
+  try {
+    await assert.rejects(searchEntities("quota check one", undefined, 1), (e) => e instanceof QlooQuotaError);
+    assert.equal(calls, 1, "no retries on a used-up quota");
+    assert.ok(qlooQuotaResetAt() > Date.now());
+    await assert.rejects(searchEntities("quota check two", undefined, 1), (e) => e instanceof QlooQuotaError);
+    assert.equal(calls, 1, "later calls don't hit the network");
+  } finally {
+    (globalThis as unknown as { __qlooQuota: { until: number } }).__qlooQuota.until = 0;
+  }
+});

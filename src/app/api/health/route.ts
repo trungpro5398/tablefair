@@ -1,5 +1,6 @@
 import { agentEnabled } from "@/lib/agent";
 import { qlooMode } from "@/lib/qloo";
+import { quotaPaused } from "@/lib/quota";
 import { kvGet, kvSet, supabase } from "@/lib/store";
 
 /**
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     db = false;
   }
   return Response.json(
-    { ok: db, db, qloo: qlooMode, agent: agentEnabled(), ms: Date.now() - started },
+    { ok: db, db, qloo: qlooMode, qloo_quota: (await quotaPaused()) ? "used_up" : "ok", agent: agentEnabled(), ms: Date.now() - started },
     { status: db ? 200 : 503, headers: { "cache-control": "no-store" } },
   );
 }

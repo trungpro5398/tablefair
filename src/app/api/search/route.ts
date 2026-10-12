@@ -1,4 +1,5 @@
 import { searchEntities } from "@/lib/qloo";
+import { quotaPaused, rememberQuota } from "@/lib/quota";
 import { allow, ipHash, tooMany } from "@/lib/usage";
 import type { EntityType } from "@/lib/types";
 
@@ -30,7 +31,14 @@ export async function GET(request: Request) {
     .split(",")
     .filter((t): t is EntityType => ALLOWED.has(t as EntityType));
   // Favourites: cultural taste signals only (no albums/people duplicates, no venues).
-  const results = await searchEntities(q.slice(0, 80), types.length ? types : FAVOURITE_TYPES, 8);
+  if (await quotaPaused()) return Response.json({ error: "quota" }, { status: 503 });
+  let results;
+  try {
+    results = await searchEntities(q.slice(0, 80), types.length ? types : FAVOURITE_TYPES, 8);
+  } catch (err) {
+    if (await rememberQuota(err)) return Response.json({ error: "quota" }, { status: 503 });
+    throw err;
+  }
   // the picker needs a small payload; tags stay server-side except a few for explanations
   return Response.json(
     results.map(({ entity_id, name, type, image, meta, tags }) => ({ entity_id, name, type, image, meta, tags: tags?.slice(0, 12) })),

@@ -1,4 +1,5 @@
 import { QlooError, confidentMatch, normaliseName, qlooMode, searchEntities } from "@/lib/qloo";
+import { quotaPaused, rememberQuota } from "@/lib/quota";
 import { addMember, createHuddle, kvGet, kvSet } from "@/lib/store";
 import { allow, ipHash, tooMany } from "@/lib/usage";
 import type { Entity, EntityType } from "@/lib/types";
@@ -15,6 +16,12 @@ type Scenario = {
   at?: { weekday: number; time: string };
   friends: { name: string; favourites: [string, EntityType][] }[];
 };
+
+/**
+ * Recorded production runs of the same two demos (Claude + live Qloo), shown when Qloo's monthly
+ * quota is used up so judges still see a real result instead of an error.
+ */
+const RECORDED = { family: "akc5fxtv", friends: "2tnv3dtv" } as const;
 
 /** One-click demo huddles for judges. */
 const SCENARIOS: Record<"friends" | "family", Scenario> = {
@@ -87,10 +94,12 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { scenario?: string };
   const scenario = body.scenario === "family" ? "family" : "friends";
   if (!allow(`demo:${ipHash(request)}`, 15, 3_600_000)) return tooMany("demo huddles");
+  if (qlooMode === "live" && (await quotaPaused())) return Response.json({ id: RECORDED[scenario], recorded: true });
   let friends: Resolved;
   try {
     friends = await demoFriends(scenario);
   } catch (err) {
+    if (await rememberQuota(err)) return Response.json({ id: RECORDED[scenario], recorded: true });
     if (err instanceof QlooError)
       return Response.json({ error: "The taste service is busy right now. Please try the demo again in a minute." }, { status: 503 });
     throw err;

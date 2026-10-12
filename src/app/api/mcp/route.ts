@@ -9,6 +9,7 @@ import { ConstraintError } from "@/lib/decide";
 import { FairPickInput, fairPick } from "@/lib/fair-pick";
 import { whenLabel } from "@/lib/hours";
 import { QlooError } from "@/lib/qloo";
+import { QUOTA_MESSAGE, rememberQuota } from "@/lib/quota";
 import { createHuddle, getHuddle } from "@/lib/store";
 import { allow, ipHash } from "@/lib/usage";
 
@@ -72,6 +73,7 @@ async function callTool(name: string, args: unknown, request: Request) {
       return toolResult(await fairPick(parsed.data));
     } catch (err) {
       if (err instanceof ConstraintError) return toolError(err.message);
+      if (await rememberQuota(err)) return toolError(QUOTA_MESSAGE);
       if (err instanceof QlooError) return toolError("The taste service is busy. Try again in a minute.");
       throw err;
     }

@@ -3,6 +3,7 @@ import { agentEnabled, decide } from "@/lib/agent";
 import { ConstraintError, type RefineContext, type Step } from "@/lib/decide";
 import { QlooError, withQlooLog } from "@/lib/qloo";
 import { carriedOver } from "@/lib/fairness";
+import { QUOTA_MESSAGE, rememberQuota } from "@/lib/quota";
 import { getHistory, getHuddle, getPrivate, isDeciding, saveDecision, setDeciding } from "@/lib/store";
 import type { Decision, Huddle } from "@/lib/types";
 import { ipHash, reserveAgentRun } from "@/lib/usage";
@@ -33,6 +34,7 @@ async function run(
     return decision;
   } catch (err) {
     if (err instanceof ConstraintError) return { error: err.message, status: 422 };
+    if (await rememberQuota(err)) return { error: QUOTA_MESSAGE, status: 503 };
     if (err instanceof QlooError) {
       console.error("[decide]", err.message);
       return { error: "The taste service is busy. Please try again in a minute.", status: 502 };

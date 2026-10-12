@@ -20,6 +20,8 @@ const REFINE_CHIPS = {
   tv_show: ["Something lighter", "Shorter episodes", "No crime", "Surprise us"],
 } as const;
 
+const noSubscribe = () => () => {};
+
 function subscribeStorage(cb: () => void) {
   window.addEventListener("storage", cb);
   return () => window.removeEventListener("storage", cb);
@@ -124,6 +126,12 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
   const decisionRef = useRef<HTMLDivElement>(null);
   const autoRun = useRef(false);
   const [demoVisit, setDemoVisit] = useState(false);
+  /** opened from a demo button while Qloo's quota is used up: a saved live run, not a new one */
+  const recordedVisit = useSyncExternalStore(
+    noSubscribe,
+    () => new URLSearchParams(window.location.search).get("recorded") === "1",
+    () => false,
+  );
   const [error, setError] = useState("");
   const router = useRouter();
   const [planning, setPlanning] = useState(false);
@@ -403,16 +411,28 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
 
       {huddle.result && !deciding && (
         <div ref={resultRef} className="scroll-mt-4 space-y-4">
-          {demoVisit && (
+          {recordedVisit && (
+            <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
+              <span className="font-semibold">A recorded live run.</span> Qloo&apos;s hackathon API has used up its monthly
+              request quota, so new picks can&apos;t be computed right now. This is the same demo group, run on production with
+              Claude and live Qloo data on {new Date(huddle.result.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}.
+              Every number below is the saved result.
+            </p>
+          )}
+          {(demoVisit || recordedVisit) && (
             <div className="rounded-2xl bg-brand/10 py-3 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:px-4">
-              <p className="px-4 font-medium sm:mr-1 sm:px-0">A demo group on live Qloo data. Try next:</p>
+              <p className="px-4 font-medium sm:mr-1 sm:px-0">
+                {recordedVisit ? "Look closer:" : "A demo group on live Qloo data. Try next:"}
+              </p>
               <div className="mt-2 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:contents [&>button]:shrink-0 [&>button]:whitespace-nowrap">
-                <button
-                  onClick={() => decide(true, REFINE_CHIPS[huddle.kind][0])}
-                  className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft"
-                >
-                  Talk back: “{REFINE_CHIPS[huddle.kind][0].toLowerCase()}”
-                </button>
+                {!recordedVisit && (
+                  <button
+                    onClick={() => decide(true, REFINE_CHIPS[huddle.kind][0])}
+                    className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft"
+                  >
+                    Talk back: “{REFINE_CHIPS[huddle.kind][0].toLowerCase()}”
+                  </button>
+                )}
                 <button onClick={() => openPanel("how")} className="rounded-full border border-line bg-card px-3 py-1 hover:bg-soft">
                   How the agent decided
                 </button>
