@@ -74,7 +74,7 @@ export default function ImpactPage() {
         <p className="mt-1 text-sm text-muted">
           57 random groups with real constraints (a time, a budget, a vegetarian, children, a time limit). Each person had
           four favourites; TableFair and Claude saw three, and every pick was graded on the fourth.{" "}
-          <a className="text-brand underline-offset-4 hover:underline" href="https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md">
+          <a className="text-brand underline underline-offset-4" href="https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md">
             Method
           </a>
         </p>
@@ -92,7 +92,7 @@ export default function ImpactPage() {
         <p className="mt-1 text-sm text-muted">
           120 random groups of 3–5 people (60 dinner, 60 movie) in two runs, same pipeline as the app, no LLM.
           Synthetic groups.{" "}
-          <a className="text-brand underline-offset-4 hover:underline" href="https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md">
+          <a className="text-brand underline underline-offset-4" href="https://github.com/trungpro5398/tablefair/blob/main/docs/EVALUATION.md">
             Method
           </a>
         </p>

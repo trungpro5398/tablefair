@@ -95,7 +95,7 @@ function FeedbackCard({
       ) : (
         <p className="text-sm text-muted">
           Thanks. Answers are anonymous and feed the live numbers on{" "}
-          <a href="/impact" className="text-brand underline-offset-4 hover:underline">
+          <a href="/impact" className="text-brand underline underline-offset-4">
             the impact page
           </a>
           .
@@ -491,7 +491,7 @@ export default function HuddleView({ initial }: { initial: Huddle }) {
                 {locked ? (
                   <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
                     This is a recorded showcase run, so it stays as it was.{" "}
-                    <Link href="/#start" className="font-medium text-brand underline-offset-4 hover:underline">
+                    <Link href="/#start" className="font-medium text-brand underline underline-offset-4">
                       Start your own huddle
                     </Link>{" "}
                     to try TableFair with your group.
