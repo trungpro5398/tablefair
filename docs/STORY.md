@@ -1,5 +1,5 @@
 ## In 30 seconds
-**Try it:** [tablefair.vercel.app](https://tablefair.vercel.app). Press "Demo: three generations, one lunch" (no account): the numbers appear in about 10 seconds, then Claude's checked explanations replace them. If the hackathon key's monthly Qloo quota is used up, the demo opens a recorded production run instead and says so. **Watch:** the narrated walkthrough on this page (2 min 31 s). **Code:** [github.com/trungpro5398/tablefair](https://github.com/trungpro5398/tablefair) (MIT).
+**Try it:** [tablefair.vercel.app](https://tablefair.vercel.app). Press "Demo: three generations, one lunch" (no account): the pick and everyone's numbers appear in about 10–15 seconds, then Claude's checked explanations replace them. If the hackathon key's monthly Qloo quota is used up, the demo opens a recorded production run instead and says so. **Watch:** the narrated walkthrough on this page (2 min 31 s). **Code:** [github.com/trungpro5398/tablefair](https://github.com/trungpro5398/tablefair) (MIT).
 
 **The problem.** Couples spend about 17 minutes deciding where dinner comes from, and viewers browse about 12 minutes before finding something to watch ([sources](https://github.com/trungpro5398/tablefair/blob/main/docs/MARKET.md)). Group apps settle it by swiping or voting. When you average everyone's taste, the person who would hate the choice disappears into the average.
 
@@ -19,7 +19,7 @@
 | Criterion | Where to look |
 |---|---|
 | **Technological implementation** | Four Qloo endpoints doing five jobs (below). A Claude tool-use agent with five tools, with the hard rules enforced in code. Every decision is also compared with two "without Qloo" baselines: the same Claude model on its own (checked against the group's rules with Qloo's data) and the most popular option that fits. A held-out evaluation, an MCP server, a rules-only REST API, 70 unit tests. Every request is listed in the app's "exact Qloo requests" panel. |
-| **Design** | One click to a result: the numbers in about 10 seconds while Claude checks them, with its steps streamed in plain English. The result opens with the average-vs-fair chart. You can talk back to re-plan. Share link, QR code and a share card showing the average-vs-fair bars; mobile and dark mode. Lighthouse accessibility scores 100. |
+| **Design** | One click to a result: the numbers in about 10–15 seconds while Claude checks them, with its steps streamed in plain English. The result opens with the average-vs-fair chart. You can talk back to re-plan. Share link, QR code and a share card showing the average-vs-fair bars; mobile and dark mode. Lighthouse accessibility scores 100. |
 | **Potential impact** | Families, friends and team outings, with the three-generation family as the core case. Picks respect opening hours, dietary needs, children and time, so the group can actually go. Booking platforms can use the API and AI assistants can use the MCP server. A live `/impact` page counts real groups only. |
 | **Quality of the idea** | Qloo usually recommends to one person. TableFair uses it to measure *how much each person in a group cares*, and protects them. Cross-domain taste becomes a fairness signal, with private vetoes and fairness that carries over to the next outing. |
 
@@ -70,7 +70,7 @@ What this does not establish: how any one person will feel. The matches are rank
 ![TableFair under the hood](https://raw.githubusercontent.com/trungpro5398/tablefair/main/docs/media/architecture.png)
 
 - **Agent.** Claude runs through the Anthropic TypeScript SDK tool runner with five typed tools: `find_tags`, `group_candidates`, `score_for_members`, `compare_tastes` and `finalize`. It chooses filters, compares the two people who disagree most, and re-plans once if the protected person is in their bottom half. Each step is streamed live to the page.
-- **Fast first answer.** While Claude plans, the same pipeline runs by rules, so the group sees the pick and everyone's numbers in about 10 seconds; Claude's checked version and explanations replace it a little later. Qloo responses land in a shared cache, so the agent's first shortlist costs no extra calls.
+- **Fast first answer.** While Claude plans, the same pipeline runs by rules, so the group sees the pick and everyone's numbers in about 10–15 seconds; Claude's checked version and explanations replace it a little later. Qloo responses land in a shared cache, so the agent's first shortlist costs no extra calls.
 - **Claude alone, as a control.** The same model also gets the same brief without Qloo. Its suggestion is looked up with `/search`, scored for every person in the same `filter.results.entities` call, and checked against the group's rules using Qloo's own hours, price, dietary and age-rating data. It is shown, never picked.
 - **An agent that can't make things up.** The numbers come only from Qloo plus deterministic code. Code enforces diet, budget, opening hours and "calm", so these survive retries. `finalize` rejects picks outside the scored ranking, ambience words that the Qloo tags don't support, and "loves/hates" predictions.
 - **Fairness.** Raw affinities aren't comparable between people, so each person's scores become percentiles over tonight's shortlist. The pick is the **maximin** option over people with a preference. Near-ties go to the option kindest to everyone, then to **Nash welfare**.
@@ -78,6 +78,7 @@ What this does not establish: how any one person will feel. The matches are rank
 - **Stack.** Next.js 16, TypeScript and Tailwind; Supabase with row-level security and server-only access; Vercel. Claude runs are capped per day and per IP, and fall back to rule-based explanations. A full agent decision costs $0.05–0.13.
 - **Built to survive judging day.** Qloo rate limits are retried with back-off; if Qloo stays busy mid-run, the group keeps the numbers already shown. If the monthly quota runs out, requests stop retrying, the demo buttons open recorded production runs with a banner saying so, and those showcase runs are read-only so nobody can overwrite them.
 - **Quality.** 70 unit tests cover minority protection, ties, constraints, opening hours across midnight, privacy, MCP and Qloo request construction. CI runs on GitHub Actions.
+- **Team.** Built solo, with Claude Code as an AI pair programmer.
 
 ## Does fairness change anything? We measured it
 **Held-out test against Claude alone.** `scripts/evaluate-baselines.mts` gives each person four favourites, shows three to TableFair and to Claude, and grades every pick on the fourth. Groups carry real constraints (a time, a budget, a vegetarian, children, a time limit). One run, 57 groups:
@@ -119,8 +120,6 @@ Fairness only means something if people can see it. A percentage on its own is h
 - No user study yet: the evaluation uses synthetic groups, and real-group numbers build up on `/impact`.
 - The held-out test is one run of 57 groups, and it shows the fair pick only drawing with the simple average on tastes it never saw.
 - While the hackathon key's monthly Qloo quota is used up, new decisions can't run; the demos show recorded production runs.
-
-Built solo, with Claude Code as an AI pair programmer.
 
 ## Who it's for, and what's next
 Friends, couples and families for free; team dinners where inclusion matters; AI assistants through MCP; and booking, ticketing and group-travel platforms through the API, priced per call or per booking. Next: booking hand-off with partners, streaming availability by country, calibrating the flexibility threshold from real `/impact` data, and a mobile app with group-chat sharing.
